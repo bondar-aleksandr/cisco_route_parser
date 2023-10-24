@@ -3,6 +3,7 @@ package main
 import (
 	"net/netip"
 	"fmt"
+	"sort"
 )
 
 //Single route entity
@@ -26,6 +27,7 @@ func NewRoute() *Route {
 func (r *Route) AddNextHop(nh *nextHop) {
 	r.NHList = append(r.NHList, nh)
 }
+
 
 //Nexthop entity
 type nextHop struct {
@@ -64,4 +66,19 @@ func (r *Routes) Amount() int {
 
 func (r *Routes) GetLast() *Route {
 	return r.Elements[r.Amount() - 1]
+}
+
+// FindRoutes func return slice of *Route objects, which contain "ip".
+// Routes in slice are sorted based on prefix lenght, starting from more specific
+func (r *Routes) FindRoutes(ip netip.Addr) []*Route {
+	routes := []*Route{}
+	for _, v := range r.Elements {
+		if v.Network.Contains(ip) {
+			routes = append(routes, v)
+		}
+	}
+	sort.Slice(routes, func(i, j int) bool {
+		return routes[i].Network.Bits() > routes[j].Network.Bits()
+	})
+	return routes
 }

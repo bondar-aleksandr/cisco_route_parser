@@ -1,20 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/netip"
 	"os"
-	"regexp"
 	"strings"
-	"fmt"
-)
-
-
-const (
-	CONN_ROUTE_REGEXP = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected, ([^\,]+)`
-	LINE_BREAK_REGEXP = `\[.*] via ([^\,]+)`
-	REGULAG_ROUTE_REGEXP = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? [/\d\[\]]+ via ([^\,]+)`
-	COMMON_MASK_REGEXP = `/(\d{1,2})`
 )
 
 var text = []string{
@@ -36,73 +27,18 @@ var (
 	ErrorLogger *log.Logger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
-var connRouteComp = regexp.MustCompile(CONN_ROUTE_REGEXP)
-var lineBreakComp = regexp.MustCompile(LINE_BREAK_REGEXP)
-var commonMaskComp = regexp.MustCompile(COMMON_MASK_REGEXP)
-
-var AllRoutes = Routes{}
-
-
 func main() {
+	r := strings.NewReader(strings.Join(text, "\n"))
+	Routes := ParseRoute(r) 
+	userIP, _ := netip.ParseAddr("195.78.69.119")
+	rs := Routes.FindRoutes(userIP)
+	fmt.Println(rs)
 
-	var commonMask string
-	for _, line := range text {
-
-		var route = NewRoute()
-		
-		//case where common mask specified for 
-		if strings.Contains(line, "is subnetted") {
-			matches := commonMaskComp.FindStringSubmatch(line)
-			commonMask = matches[1]
-			fmt.Println(commonMask)
-
-		//case for directly connected route
-		} else if strings.Contains(line, "is directly connected") {
-			matches := connRouteComp.FindStringSubmatch(line)
-			rtype := strings.TrimSpace(matches[1])
-			pref := matches[2]
-			mask := matches[3]
-			if mask == "" {
-				mask = commonMask
-			}
-			prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
-			if err != nil {
-				WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
-				continue
-			}
-			route.Type = rtype
-			route.Network = prefix
-			nh := NewNextHop(matches[4])
-			route.AddNextHop(nh)
-			AllRoutes.Add(route)
-		
-		//case for regular route
-		} else if m, _ :=regexp.MatchString(REGULAG_ROUTE_REGEXP, line); m {
-			matches := regexp.MustCompile(REGULAG_ROUTE_REGEXP).FindStringSubmatch(line)
-			rtype := strings.TrimSpace(matches[1])
-			pref := matches[2]
-			mask := matches[3]
-			if mask == "" {
-				mask = commonMask
-			}
-			prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
-			if err != nil {
-				WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
-				continue
-			}
-			route.Type = rtype
-			route.Network = prefix
-			nh := NewNextHop(matches[4])
-			route.AddNextHop(nh)
-			AllRoutes.Add(route)
-			
-		//case for linebreak with via
-		} else if strings.HasPrefix(strings.TrimSpace(line), "[") {
-			matches := lineBreakComp.FindStringSubmatch(line)
-			nh := NewNextHop(matches[1])
-			AllRoutes.GetLast().AddNextHop(nh)
-		}
-	}
-	fmt.Println(AllRoutes)
-
+	// ipA, _ := netip.ParseAddr("1.2.3.4")
+	// ipB, _ := netip.ParsePrefix("1.2.3.0/24")
+	// ipC, _ := netip.ParsePrefix("1.2.3.8/29")
+	// ipD, _ := netip.ParsePrefix("0.0.0.0/0")
+	// fmt.Println(ipB.Contains(ipA))
+	// fmt.Println(ipC.Contains(ipA))
+	// fmt.Println(ipD.Contains(ipA))
 }
