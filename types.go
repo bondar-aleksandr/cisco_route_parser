@@ -44,9 +44,9 @@ func NewNextHop(s string) *nextHop {
 
 func (nh *nextHop) String() string {
 	if nh.isIP {
-		return fmt.Sprintf("NextHop: %s", nh.ip)
+		return fmt.Sprintf("NextHop: %s, isIP: %v", nh.ip, nh.isIP)
 	}
-	return fmt.Sprintf("NextHop: %s", nh.intf)
+	return fmt.Sprintf("NextHop: %s, isIP: %v", nh.intf, nh.isIP)
 }
 
 //All routes
