@@ -26,19 +26,24 @@ var (
 	WarnLogger *log.Logger = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
 	ErrorLogger *log.Logger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
+//var to store all parsed routes
+var allRoutes *Routes
+
+//var to store all parsed next-hops
+var allNH = make(map[uint64]*nextHop)
 
 func main() {
-	r := strings.NewReader(strings.Join(text, "\n"))
-	Routes := ParseRoute(r) 
-	userIP, _ := netip.ParseAddr("195.78.69.119")
-	rs := Routes.FindRoutes(userIP)
-	fmt.Println(rs)
 
-	// ipA, _ := netip.ParseAddr("1.2.3.4")
-	// ipB, _ := netip.ParsePrefix("1.2.3.0/24")
-	// ipC, _ := netip.ParsePrefix("1.2.3.8/29")
-	// ipD, _ := netip.ParsePrefix("0.0.0.0/0")
-	// fmt.Println(ipB.Contains(ipA))
-	// fmt.Println(ipC.Contains(ipA))
-	// fmt.Println(ipD.Contains(ipA))
+	r := strings.NewReader(strings.Join(text, "\n"))
+	buildRoutesCache(r)
+	fmt.Println(allNH)
+	userIP, _ := netip.ParseAddr("172.17.61.1")
+	rs := allRoutes.FindRoutes(userIP)
+	for s := range rs {
+		fmt.Println(s)
+	}
+	for nh := range allRoutes.FindUniqNexthop(true) {
+		fmt.Println(nh)
+	}
+
 }
