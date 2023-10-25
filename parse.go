@@ -54,6 +54,7 @@ func ParseRoute(r io.Reader) *Routes {
 			route.Type = rtype
 			route.Network = prefix
 			nh := NewNextHop(matches[4])
+			addNhToCache(nh)
 			route.AddNextHop(nh.GetHash())
 			AllRoutes.Add(route)
 		
@@ -74,6 +75,7 @@ func ParseRoute(r io.Reader) *Routes {
 			route.Type = rtype
 			route.Network = prefix
 			nh := NewNextHop(matches[4])
+			addNhToCache(nh)
 			route.AddNextHop(nh.GetHash())
 			AllRoutes.Add(route)
 			
@@ -81,12 +83,13 @@ func ParseRoute(r io.Reader) *Routes {
 		} else if strings.HasPrefix(strings.TrimSpace(line), "[") {
 			matches := lineBreakComp.FindStringSubmatch(line)
 			nh := NewNextHop(matches[1])
+			addNhToCache(nh)
 			AllRoutes.GetLast().AddNextHop(nh.GetHash())
 
 		//just not for log.Warn to be triggered
 		} else if strings.Contains(line, "is variably subnetted") {
 			continue
-			
+
 		//for debug purposes
 		} else {
 			WarnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)

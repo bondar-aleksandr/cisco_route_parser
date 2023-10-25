@@ -42,21 +42,17 @@ type nextHop struct {
 
 func NewNextHop(s string) *nextHop {
 	if v , err := netip.ParseAddr(s); err != nil {
-		res := &nextHop{IsIP: false, Intf: s}
-		addNhToCache(res)
-		return res
+		return &nextHop{IsIP: false, Intf: s}
 	} else {
-		res := &nextHop{IsIP: true, Addr: v}
-		addNhToCache(res)
-		return res
+		return &nextHop{IsIP: true, Addr: v}
 	}
 }
 
 func (nh *nextHop) String() string {
 	if nh.IsIP {
-		return fmt.Sprintf("{NextHop: %s, isIP: %v}", nh.Addr, nh.IsIP)
+		return fmt.Sprintf("{NextHop: %s}", nh.Addr)
 	}
-	return fmt.Sprintf("{NextHop: %s, isIP: %v}", nh.Intf, nh.IsIP)
+	return fmt.Sprintf("{NextHop: %s}", nh.Intf)
 }
 
 func (nh *nextHop) GetHash() (uint64) {
@@ -106,9 +102,31 @@ func (r *Routes) FindRoutes(ip netip.Addr) <-chan *Route {
 	return out
 }
 
-// FindUniqNexthop func finds all unique NextHop objects, returns as a channel.
+// FindRoutesByNH func finds all routes with specified nexthop.
+// Result returned as a channel
+func (r *Routes) FindRoutesByNH(n string) <-chan *Route {
+	out := make(chan *Route)
+	nh := NewNextHop(n)
+	res := []*Route{}
+	for _, route := range r.Elements {
+		for _, v := range route.NHList {
+			if v == nh.GetHash() {
+				res = append(res, route)
+			}
+		}
+	}
+	go func(){
+		defer close(out)
+		for _,v := range res {
+			out <- v
+		}
+	}()
+	return out
+}
+
+// FindUniqNexthop func finds all unique NextHop objects. Result returned as a channel.
 // "ipOnly" flag gives ability to specify whether we need to get only NextHops with IP address
-func (r *Routes) FindUniqNexthop (ipOnly bool) <-chan *nextHop {
+func (r *Routes) FindUniqNexthops (ipOnly bool) <-chan *nextHop {
 	out := make(chan *nextHop)
 	nhList := []*nextHop{}
 	for _, nh := range allNH {

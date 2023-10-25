@@ -42,8 +42,16 @@ func main() {
 	for s := range rs {
 		fmt.Println(s)
 	}
-	for nh := range allRoutes.FindUniqNexthop(true) {
+	for nh := range allRoutes.FindUniqNexthops(false) {
 		fmt.Println(nh)
 	}
+
+	var userNh string
+	fmt.Scanln(&userNh)
+
+	for rByNH := range allRoutes.FindRoutesByNH(userNh) {
+		fmt.Println(rByNH)
+	}
+
 
 }
