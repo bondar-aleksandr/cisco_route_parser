@@ -91,9 +91,9 @@ func ParseRoute(r io.Reader) *Routes {
 			continue
 
 		//for debug purposes
-		} else {
-			WarnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)
-		}
+		} //else {
+		//	WarnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)
+		//}
 	}
 	return AllRoutes
 }

@@ -6,7 +6,9 @@ import (
 
 // buildRoutesCache parses all routes from specified source
 func buildRoutesCache(source io.Reader) {
+	InfoLogger.Println("Parsing routes...")
 	allRoutes = ParseRoute(source) 
+	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.Amount(), len(allNH))
 }
 
 // buildNHCache builds NH cache as map, where keys are hashes and values are *nextHop

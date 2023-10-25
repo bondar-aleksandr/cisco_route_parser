@@ -80,13 +80,33 @@ func (r *Routes) GetLast() *Route {
 	return r.Elements[r.Amount() - 1]
 }
 
-// FindRoutes func return channel of *Route objects, which contain "ip".
-// Routes in slice are sorted based on prefix lenght, starting from more specific
-func (r *Routes) FindRoutes(ip netip.Addr) <-chan *Route {
+// For test purposes. It's assumed that there is only one route to the destination in routing table
+func (r *Routes) GetByNetwork(s string) (*Route, error) {
+	netw, err := netip.ParsePrefix(s)
+	if err != nil {
+		return nil, err
+	}
+	for _,v := range r.Elements {
+		if netw.String() == v.Network.String() {
+			return v, nil
+		}
+	}
+	return nil, nil
+}
+
+// FindRoutes func return channel of *Route objects, which contain "ip" specified.
+// Routes put in channel are ordered based on prefix lenght, starting from more specific
+func (r *Routes) FindRoutes(ip string) (<-chan *Route, error) {
 	out := make(chan *Route)
+	parsedIp, err := netip.ParseAddr(ip)
+	if err != nil {
+		close(out)
+		return out, err
+	}
+
 	indexes := []*Route{}
 	for _, v := range r.Elements {
-		if v.Network.Contains(ip) {
+		if v.Network.Contains(parsedIp) {
 			indexes = append(indexes, v)
 		}
 	}
@@ -99,7 +119,7 @@ func (r *Routes) FindRoutes(ip netip.Addr) <-chan *Route {
 			out <- v
 		}
 	}()
-	return out
+	return out, nil
 }
 
 // FindRoutesByNH func finds all routes with specified nexthop.

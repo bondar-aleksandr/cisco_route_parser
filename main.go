@@ -3,23 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/netip"
 	"os"
-	"strings"
+	"flag"
 )
-
-var text = []string{
-	"B*    0.0.0.0/0 [20/0] via 212.26.135.74, 4w4d",
-	"	   195.78.68.0/32 is subnetted, 1 subnets",
-	"S        195.78.68.2 [1/0] via 195.78.69.120",
-	"O*E1  0.0.0.0/0 [110/101] via 192.168.199.18, 3w5d, Vlan14",
-	"	   10.0.0.0/8 is variably subnetted, 7 subnets, 3 masks",
-	"O E2     10.10.10.0/24 [110/20] via 192.168.199.18, 1w3d, Vlan14",
-	"C        195.78.69.112/28 is directly connected, Port-channel2.20",
-	"L        195.78.69.119/32 is directly connected, Port-channel2.20",
-	"O        172.17.61.0/24 [110/41] via 192.168.199.35, 1w5d, Vlan889",
-	"					     [110/41] via 192.168.199.34, 1w5d, Vlan889",
-}
 
 var (
 	InfoLogger  *log.Logger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
@@ -34,11 +20,28 @@ var allNH = make(map[uint64]*nextHop)
 
 func main() {
 
-	r := strings.NewReader(strings.Join(text, "\n"))
-	buildRoutesCache(r)
-	fmt.Println(allNH)
-	userIP, _ := netip.ParseAddr("172.17.61.1")
-	rs := allRoutes.FindRoutes(userIP)
+	InfoLogger.Println("Starting...")
+
+	var iFileName = flag.String("i", "", "input 'ip route' file to parse data from")
+	if len(os.Args) < 1 {
+		ErrorLogger.Fatalf("No input data provided, use -h flag for help. Exiting...")
+	}
+	flag.Parse()
+
+	iFile, err := os.Open(*iFileName)
+	if err != nil {
+		ErrorLogger.Fatalf("Can not open file %q because of: %q", *iFileName, err)
+	}
+	defer iFile.Close()
+
+	// r := strings.NewReader(strings.Join(text, "\n"))
+	buildRoutesCache(iFile)
+
+	fmt.Println("Type IP value for route lookup:")
+	var userIP string
+	fmt.Scanln(&userIP)
+
+	rs,_ := allRoutes.FindRoutes(userIP)
 	for s := range rs {
 		fmt.Println(s)
 	}
@@ -47,11 +50,14 @@ func main() {
 	}
 
 	var userNh string
+	fmt.Println("Type Next-hop value:")
 	fmt.Scanln(&userNh)
 
 	for rByNH := range allRoutes.FindRoutesByNH(userNh) {
 		fmt.Println(rByNH)
 	}
+	r,_ := allRoutes.GetByNetwork("192.168.99.0/24")
+	fmt.Println(r)
 
 
 }
