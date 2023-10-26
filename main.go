@@ -41,23 +41,23 @@ func main() {
 	var userIP string
 	fmt.Scanln(&userIP)
 
-	rs,_ := allRoutes.FindRoutes(userIP)
+	rs,_ := allRoutes.FindRoutes(userIP, false)
 	for s := range rs {
 		fmt.Println(s)
 	}
-	for nh := range allRoutes.FindUniqNexthops(false) {
-		fmt.Println(nh)
-	}
+	// for nh := range allRoutes.FindUniqNexthops(false) {
+	// 	fmt.Println(nh)
+	// }
 
-	var userNh string
-	fmt.Println("Type Next-hop value:")
-	fmt.Scanln(&userNh)
+	// var userNh string
+	// fmt.Println("Type Next-hop value:")
+	// fmt.Scanln(&userNh)
 
-	for rByNH := range allRoutes.FindRoutesByNH(userNh) {
-		fmt.Println(rByNH)
-	}
-	r,_ := allRoutes.GetByNetwork("192.168.99.0/24")
-	fmt.Println(r)
+	// for rByNH := range allRoutes.FindRoutesByNH(userNh) {
+	// 	fmt.Println(rByNH)
+	// }
+	// r := allRoutes.getByNetwork("192.168.99.0/24")
+	// fmt.Println(r)
 
 
 }

@@ -81,22 +81,24 @@ func (r *Routes) GetLast() *Route {
 }
 
 // For test purposes. It's assumed that there is only one route to the destination in routing table
-func (r *Routes) GetByNetwork(s string) (*Route, error) {
+func (r *Routes) getByNetwork(s string) *Route {
 	netw, err := netip.ParsePrefix(s)
 	if err != nil {
-		return nil, err
+		ErrorLogger.Printf("Cannot parse ip %s", s)
+		return nil
 	}
 	for _,v := range r.Elements {
 		if netw.String() == v.Network.String() {
-			return v, nil
+			return v
 		}
 	}
-	return nil, nil
+	return nil
 }
 
 // FindRoutes func return channel of *Route objects, which contain "ip" specified.
 // Routes put in channel are ordered based on prefix lenght, starting from more specific
-func (r *Routes) FindRoutes(ip string) (<-chan *Route, error) {
+// If "all" flag is specified, func return all matched routes, otherwise only best match returned
+func (r *Routes) FindRoutes(ip string, all bool) (<-chan *Route, error) {
 	out := make(chan *Route)
 	parsedIp, err := netip.ParseAddr(ip)
 	if err != nil {
@@ -110,9 +112,19 @@ func (r *Routes) FindRoutes(ip string) (<-chan *Route, error) {
 			indexes = append(indexes, v)
 		}
 	}
+	// if no routes found
+	if len(indexes) == 0 {
+		close(out)
+		return out, nil
+	}
 	sort.Slice(indexes, func(i, j int) bool {
 		return indexes[i].Network.Bits() > indexes[j].Network.Bits()
 	})
+
+	// for case when we need to return only best route
+	if !all {
+		indexes = indexes[:1]
+	}
 	go func(){
 		defer close(out)
 		for _,v := range indexes {
@@ -134,6 +146,11 @@ func (r *Routes) FindRoutesByNH(n string) <-chan *Route {
 				res = append(res, route)
 			}
 		}
+	}
+	// if no routes found
+	if len(res) == 0 {
+		close(out)
+		return out
 	}
 	go func(){
 		defer close(out)
