@@ -97,3 +97,11 @@ func ParseRoute(r io.Reader) *Routes {
 	}
 	return AllRoutes
 }
+
+// buildNHCache builds NH cache as map, where keys are hashes and values are *nextHop
+func addNhToCache(nh *nextHop) {
+	if _, ok := allNH[nh.GetHash()]; ok {
+		return
+	}
+	allNH[nh.GetHash()] = nh
+}

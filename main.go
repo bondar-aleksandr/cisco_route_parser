@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 	"flag"
@@ -34,30 +34,9 @@ func main() {
 	}
 	defer iFile.Close()
 
-	// r := strings.NewReader(strings.Join(text, "\n"))
-	buildRoutesCache(iFile)
-
-	fmt.Println("Type IP value for route lookup:")
-	var userIP string
-	fmt.Scanln(&userIP)
-
-	rs,_ := allRoutes.FindRoutes(userIP, false)
-	for s := range rs {
-		fmt.Println(s)
-	}
-	// for nh := range allRoutes.FindUniqNexthops(false) {
-	// 	fmt.Println(nh)
-	// }
-
-	// var userNh string
-	// fmt.Println("Type Next-hop value:")
-	// fmt.Scanln(&userNh)
-
-	// for rByNH := range allRoutes.FindRoutesByNH(userNh) {
-	// 	fmt.Println(rByNH)
-	// }
-	// r := allRoutes.getByNetwork("192.168.99.0/24")
-	// fmt.Println(r)
-
-
+	// BuildRoutesCache(iFile, allRoutes)
+	InfoLogger.Println("Parsing routes...")
+	allRoutes = ParseRoute(iFile)
+	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.Amount(), len(allNH))
+	Menu()
 }
