@@ -44,65 +44,30 @@ func ParseRoute(r io.Reader) *Routes {
 		// C        33.33.33.33/32 is directly connected, Loopback102
 		} else if strings.Contains(line, "is directly connected") {
 			matches := connRouteComp.FindStringSubmatch(line)
-			rtype := strings.TrimSpace(matches[1])
-			pref := matches[2]
-			mask := matches[3]
-			if mask == "" {
-				mask = commonMask
-			}
-			prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
-			if err != nil {
-				WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+			route = routeCreate(matches, []int{1,2,3,4}, commonMask)
+			if route == nil {
 				continue
 			}
-			route.Type = rtype
-			route.Network = prefix
-			nh := NewNextHop(matches[4])
-			addNhToCache(nh)
-			route.AddNextHop(nh.GetHash())
 			AllRoutes.Add(route)
 
 		// case for summary discard route, for example:
 		// O        33.33.33.0/24 is a summary, 00:00:14, Null0
 		} else if strings.Contains(line, "is a summary") {
 			matches := summaryRouteComp.FindStringSubmatch(line)
-			rtype := strings.TrimSpace(matches[1])
-			pref := matches[2]
-			mask := matches[3]
-			if mask == "" {
-				mask = commonMask
-			}
-			prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
-			if err != nil {
-				WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+			route = routeCreate(matches, []int{1,2,3,5}, commonMask)
+			if route == nil {
 				continue
 			}
-			route.Type = rtype
-			route.Network = prefix
-			nh := NewNextHop(matches[5])
-			addNhToCache(nh)
 			AllRoutes.Add(route)
 		
 		// case for regular route, for example:
 		// O        172.17.10.0/24 [110/41] via 192.168.199.35, 1w5d, Vlan889
-		} else if m, _ :=regexp.MatchString(REGULAR_ROUTE_REGEXP, line); m {
+		} else if m, _ := regexp.MatchString(REGULAR_ROUTE_REGEXP, line); m {
 			matches := regexp.MustCompile(REGULAR_ROUTE_REGEXP).FindStringSubmatch(line)
-			rtype := strings.TrimSpace(matches[1])
-			pref := matches[2]
-			mask := matches[3]
-			if mask == "" {
-				mask = commonMask
-			}
-			prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
-			if err != nil {
-				WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+			route = routeCreate(matches, []int{1,2,3,4}, commonMask)
+			if route == nil {
 				continue
 			}
-			route.Type = rtype
-			route.Network = prefix
-			nh := NewNextHop(matches[4])
-			addNhToCache(nh)
-			route.AddNextHop(nh.GetHash())
 			AllRoutes.Add(route)
 			
 		// case for linebreak with via
@@ -134,6 +99,31 @@ func addNhToCache(nh *nextHop) {
 	allNH[nh.GetHash()] = nh
 }
 
-// func routeCreate(matches []string) {
+// routeCreate func creates *Route object from slice of strings (matches) and corresponding
+// indexes (regGroup) for those strings in the slice
+func routeCreate(matches []string, regGroup []int, commonMask string) *Route {
+	var route = NewRoute()
 
-// }
+	rtypeIndex := regGroup[0]
+	prefIndex := regGroup[1]
+	maskIndex := regGroup[2]
+	nhIndex := regGroup[3]
+
+	rtype := strings.TrimSpace(matches[rtypeIndex])
+	pref := matches[prefIndex]
+	mask := matches[maskIndex]
+	if mask == "" {
+		mask = commonMask
+	}
+	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
+	if err != nil {
+		WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+		return nil
+	}
+	route.Type = rtype
+	route.Network = prefix
+	nh := NewNextHop(matches[nhIndex])
+	addNhToCache(nh)
+	route.AddNextHop(nh.GetHash())
+	return route
+}
