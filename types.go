@@ -12,25 +12,34 @@ type Route struct {
 	Network netip.Prefix
 	Type string
 	NHList []uint64
+	ParentRT *RoutingTable
 }
 
 func (r *Route) String() string {
 	nhlist := []*nextHop{}
 	for _,v := range r.NHList {
-		nhlist = append(nhlist, allNH[v])
+		nhlist = append(nhlist, r.ParentRT.NH[v])
 	}
 	return fmt.Sprintf("%s route to %s network via %v", r.Type, r.Network.String(), nhlist)
 }
 
 //Constructor
-func NewRoute() *Route {
+func NewRoute(rt *RoutingTable) *Route {
 	return &Route{
 		NHList: make([]uint64, 0),
+		ParentRT: rt,
 	}
 }
 
-func (r *Route) AddNextHop(nhHash uint64) {
-	r.NHList = append(r.NHList, nhHash)
+// whenever NH is added to the Route object, it's also added to RoutingTable object
+func (r *Route) AddNextHop(nh *nextHop) {
+	r.ParentRT.addNextHop(nh)
+	r.NHList = append(r.NHList, nh.getHash())
+}
+
+// next-hops count
+func (r *Route) NHCount() int {
+	return len(r.NHList)
 }
 
 //Nexthop entity
@@ -40,6 +49,7 @@ type nextHop struct {
 	Intf string
 }
 
+// Constructor
 func NewNextHop(s string) *nextHop {
 	if v , err := netip.ParseAddr(s); err != nil {
 		return &nextHop{IsIP: false, Intf: s}
@@ -55,7 +65,7 @@ func (nh *nextHop) String() string {
 	return fmt.Sprintf("{NextHop: %s}", nh.Intf)
 }
 
-func (nh *nextHop) GetHash() (uint64) {
+func (nh *nextHop) getHash() (uint64) {
 	hash, err := hashstructure.Hash(nh, hashstructure.FormatV2, nil)
 	if err != nil {
 		ErrorLogger.Fatalf("Cannot compute hash from nexthop %s due to: %q", nh.String(), err)
@@ -63,31 +73,55 @@ func (nh *nextHop) GetHash() (uint64) {
 	return hash
 }
 
-//All routes
-type Routes struct{
-	Elements []*Route
+// Routing table type. Consists of *Route slice and *nextHop map. Only unique next-hops are stored.
+// Next-hops stored in map, where keys are their hashes, values are hext-hops themselves.
+// TODO: add table name (vrf), add to parser as well
+type RoutingTable struct{
+	Routes []*Route
+	NH map[uint64]*nextHop
 }
 
-func (r *Routes) Add(e *Route) {
-	r.Elements = append(r.Elements, e)
+// Constructor for Routing table
+func NewRoutingTable() *RoutingTable {
+	return &RoutingTable{
+		Routes: make([]*Route, 0),
+		NH: make(map[uint64]*nextHop),
+	}
 }
 
-func (r *Routes) Amount() int {
-	return len(r.Elements)
+func (rt *RoutingTable) AddRoute(r *Route) {
+	r.ParentRT = rt
+	rt.Routes = append(rt.Routes, r)
 }
 
-func (r *Routes) GetLast() *Route {
-	return r.Elements[r.Amount() - 1]
+// Only unique values added
+func (rt *RoutingTable) addNextHop(nh *nextHop) {
+	if _, ok := rt.NH[nh.getHash()]; ok {
+		return
+	}
+	rt.NH[nh.getHash()] = nh
+}
+
+func (rt *RoutingTable) RoutesCount() int {
+	return len(rt.Routes)
+}
+
+func (rt *RoutingTable) NHCount() int {
+	return len(rt.NH)
+}
+
+func (rt *RoutingTable) GetLast() *Route {
+	return rt.Routes[rt.RoutesCount() - 1]
 }
 
 // For test purposes. It's assumed that there is only one route to the destination in routing table
-func (r *Routes) getByNetwork(s string) *Route {
+func (rt *RoutingTable) getByNetwork(s string) *Route {
 	netw, err := netip.ParsePrefix(s)
 	if err != nil {
 		ErrorLogger.Printf("Cannot parse ip %s", s)
 		return nil
 	}
-	for _,v := range r.Elements {
+	for _,v := range rt.Routes {
 		if netw.String() == v.Network.String() {
 			return v
 		}
@@ -98,7 +132,7 @@ func (r *Routes) getByNetwork(s string) *Route {
 // FindRoutes func return channel of *Route objects, which contain "ip" specified.
 // Routes put in channel are ordered based on prefix lenght, starting from more specific
 // If "all" flag is specified, func return all matched routes, otherwise only best match returned
-func (r *Routes) FindRoutes(ip string, all bool) (<-chan *Route, error) {
+func (rt *RoutingTable) FindRoutes(ip string, all bool) (<-chan *Route, error) {
 	out := make(chan *Route)
 	parsedIp, err := netip.ParseAddr(ip)
 	if err != nil {
@@ -107,7 +141,7 @@ func (r *Routes) FindRoutes(ip string, all bool) (<-chan *Route, error) {
 	}
 
 	indexes := []*Route{}
-	for _, v := range r.Elements {
+	for _, v := range rt.Routes {
 		if v.Network.Contains(parsedIp) {
 			indexes = append(indexes, v)
 		}
@@ -136,13 +170,13 @@ func (r *Routes) FindRoutes(ip string, all bool) (<-chan *Route, error) {
 
 // FindRoutesByNH func finds all routes with specified nexthop.
 // Result returned as a channel
-func (r *Routes) FindRoutesByNH(n string) <-chan *Route {
+func (rt *RoutingTable) FindRoutesByNH(n string) <-chan *Route {
 	out := make(chan *Route)
 	nh := NewNextHop(n)
 	res := []*Route{}
-	for _, route := range r.Elements {
+	for _, route := range rt.Routes {
 		for _, v := range route.NHList {
-			if v == nh.GetHash() {
+			if v == nh.getHash() {
 				res = append(res, route)
 			}
 		}
@@ -163,10 +197,10 @@ func (r *Routes) FindRoutesByNH(n string) <-chan *Route {
 
 // FindUniqNexthop func finds all unique NextHop objects. Result returned as a channel.
 // "ipOnly" flag gives ability to specify whether we need to get only NextHops with IP address
-func (r *Routes) FindUniqNexthops (ipOnly bool) <-chan *nextHop {
+func (rt *RoutingTable) FindUniqNexthops (ipOnly bool) <-chan *nextHop {
 	out := make(chan *nextHop)
 	nhList := []*nextHop{}
-	for _, nh := range allNH {
+	for _, nh := range rt.NH {
 		if ipOnly {
 			if nh.IsIP {
 				nhList = append(nhList, nh)

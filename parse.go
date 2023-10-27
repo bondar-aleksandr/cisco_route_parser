@@ -23,17 +23,15 @@ var commonMaskComp = regexp.MustCompile(COMMON_MASK_REGEXP)
 var summaryRouteComp = regexp.MustCompile(SUMMARY_ROUTE_REGEXP)
 
 
-func ParseRoute(r io.Reader) *Routes {
+func ParseRoute(r io.Reader) *RoutingTable {
 
-	var AllRoutes = &Routes{}
+	var RT = NewRoutingTable()
 	var commonMask string
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		line := scanner.Text()
-
-		var route = NewRoute()
-		
+	
 		// case where common mask specified
 		// 1.0.0.0/24 is subnetted, 10 subnets
 		if strings.Contains(line, "is subnetted") {
@@ -44,39 +42,38 @@ func ParseRoute(r io.Reader) *Routes {
 		// C        33.33.33.33/32 is directly connected, Loopback102
 		} else if strings.Contains(line, "is directly connected") {
 			matches := connRouteComp.FindStringSubmatch(line)
-			route = routeCreate(matches, []int{1,2,3,4}, commonMask)
+			route := routeCreate(matches, []int{1,2,3,4}, commonMask, RT)
 			if route == nil {
 				continue
 			}
-			AllRoutes.Add(route)
+			RT.AddRoute(route)
 
 		// case for summary discard route, for example:
 		// O        33.33.33.0/24 is a summary, 00:00:14, Null0
 		} else if strings.Contains(line, "is a summary") {
 			matches := summaryRouteComp.FindStringSubmatch(line)
-			route = routeCreate(matches, []int{1,2,3,5}, commonMask)
+			route := routeCreate(matches, []int{1,2,3,5}, commonMask, RT)
 			if route == nil {
 				continue
 			}
-			AllRoutes.Add(route)
+			RT.AddRoute(route)
 		
 		// case for regular route, for example:
 		// O        172.17.10.0/24 [110/41] via 192.168.199.35, 1w5d, Vlan889
 		} else if m, _ := regexp.MatchString(REGULAR_ROUTE_REGEXP, line); m {
 			matches := regexp.MustCompile(REGULAR_ROUTE_REGEXP).FindStringSubmatch(line)
-			route = routeCreate(matches, []int{1,2,3,4}, commonMask)
+			route := routeCreate(matches, []int{1,2,3,4}, commonMask, RT)
 			if route == nil {
 				continue
 			}
-			AllRoutes.Add(route)
+			RT.AddRoute(route)
 			
 		// case for linebreak with via
 		// [110/41] via 192.168.199.34, 1w5d, Vlan889
 		} else if strings.HasPrefix(strings.TrimSpace(line), "[") {
 			matches := lineBreakComp.FindStringSubmatch(line)
 			nh := NewNextHop(matches[1])
-			addNhToCache(nh)
-			AllRoutes.GetLast().AddNextHop(nh.GetHash())
+			RT.GetLast().AddNextHop(nh)
 
 		// just not for log.Warn to be triggered
 		// 33.0.0.0/8 is variably subnetted, 3 subnets, 2 masks
@@ -88,26 +85,18 @@ func ParseRoute(r io.Reader) *Routes {
 		// 	WarnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)
 		}
 	}
-	return AllRoutes
-}
-
-// buildNHCache builds NH cache as map, where keys are hashes and values are *nextHop
-func addNhToCache(nh *nextHop) {
-	if _, ok := allNH[nh.GetHash()]; ok {
-		return
-	}
-	allNH[nh.GetHash()] = nh
+	return RT
 }
 
 // routeCreate func creates *Route object from slice of strings (matches) and corresponding
 // indexes (regGroup) for those strings in the slice
-func routeCreate(matches []string, regGroup []int, commonMask string) *Route {
-	var route = NewRoute()
+func routeCreate(matches []string, capGroup []int, commonMask string, rt *RoutingTable) *Route {
+	var route = NewRoute(rt)
 
-	rtypeIndex := regGroup[0]
-	prefIndex := regGroup[1]
-	maskIndex := regGroup[2]
-	nhIndex := regGroup[3]
+	rtypeIndex := capGroup[0]
+	prefIndex := capGroup[1]
+	maskIndex := capGroup[2]
+	nhIndex := capGroup[3]
 
 	rtype := strings.TrimSpace(matches[rtypeIndex])
 	pref := matches[prefIndex]
@@ -123,7 +112,6 @@ func routeCreate(matches []string, regGroup []int, commonMask string) *Route {
 	route.Type = rtype
 	route.Network = prefix
 	nh := NewNextHop(matches[nhIndex])
-	addNhToCache(nh)
-	route.AddNextHop(nh.GetHash())
+	route.AddNextHop(nh)
 	return route
 }

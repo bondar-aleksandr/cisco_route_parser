@@ -12,10 +12,7 @@ var (
 	ErrorLogger *log.Logger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 //var to store all parsed routes
-var allRoutes *Routes
-
-//var to store all parsed next-hops
-var allNH = make(map[uint64]*nextHop)
+var allRoutes *RoutingTable
 
 func main() {
 
@@ -33,9 +30,8 @@ func main() {
 	}
 	defer iFile.Close()
 
-	// BuildRoutesCache(iFile, allRoutes)
 	InfoLogger.Println("Parsing routes...")
 	allRoutes = ParseRoute(iFile)
-	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.Amount(), len(allNH))
+	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
 	Menu()
 }
