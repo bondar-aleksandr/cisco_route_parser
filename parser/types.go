@@ -2,11 +2,13 @@ package parser
 
 import (
 	"fmt"
-	"net/netip"
-	"sort"
-	"github.com/mitchellh/hashstructure/v2"
 	"log"
+	"net/netip"
 	"os"
+	"sort"
+	"strings"
+
+	"github.com/mitchellh/hashstructure/v2"
 )
 
 var (
@@ -97,6 +99,20 @@ func newRoutingTable(table string) *RoutingTable {
 		Routes: make([]*Route, 0),
 		NH: make(map[uint64]*nextHop),
 	}
+}
+
+func (rt *RoutingTable) String() string {
+	b := strings.Builder{}
+	b.WriteString(fmt.Sprintf("Table: %s\n", rt.Table))
+	b.WriteString("Routes:\n")
+	for _,v := range rt.Routes {
+		b.WriteString(v.String() + "\n")
+	}
+	b.WriteString("Next-Hops:\n")
+	for k,v := range rt.NH {
+		b.WriteString(fmt.Sprintf("%d : %v\n", k, v))
+	}
+	return b.String()
 }
 
 func (rt *RoutingTable) addRoute(r *Route) {

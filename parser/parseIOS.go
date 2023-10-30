@@ -15,12 +15,14 @@ const (
 	regular_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? [/\d\[\]]+ via ([^\,]+)`
 	summary_route_regexp =`(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is a summary(, .+?)?([^\,, ]+)$`
 	common_mask_regexp = `/(\d{1,2})`
+	table_name_regexp = `Routing Table: (\S+)`
 )
 
 var connRouteComp = regexp.MustCompile(conn_route_regexp)
 var lineBreakComp = regexp.MustCompile(line_break_regexp)
 var commonMaskComp = regexp.MustCompile(common_mask_regexp)
 var summaryRouteComp = regexp.MustCompile(summary_route_regexp)
+var tableNameComp = regexp.MustCompile(table_name_regexp)
 
 
 func ParseRouteIOS(r io.Reader) *RoutingTable {
@@ -37,6 +39,13 @@ func ParseRouteIOS(r io.Reader) *RoutingTable {
 		if strings.Contains(line, "is subnetted") {
 			matches := commonMaskComp.FindStringSubmatch(line)
 			commonMask = matches[1]
+
+		// case where vrf name specified
+		// Routing Table: INET-ACCESS
+		} else if strings.Contains(line, "Routing Table:") {
+			matches := tableNameComp.FindStringSubmatch(line)
+			table := matches[1]
+			RT.Table = table
 
 		// case for directly connected route, for example:
 		// C        33.33.33.33/32 is directly connected, Loopback102
