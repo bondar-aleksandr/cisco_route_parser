@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"flag"
+	"github.com/bondar-aleksandr/cisco_route_parser/parser"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 	ErrorLogger *log.Logger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 //var to store all parsed routes
-var allRoutes *RoutingTable
+var allRoutes *parser.RoutingTable
 
 func main() {
 
@@ -31,7 +32,7 @@ func main() {
 	defer iFile.Close()
 
 	InfoLogger.Println("Parsing routes...")
-	allRoutes = ParseRoute(iFile)
+	allRoutes = parser.ParseRouteIOS(iFile)
 	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
 	Menu()
 }

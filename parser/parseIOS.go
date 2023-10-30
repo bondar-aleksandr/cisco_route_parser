@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"fmt"
@@ -10,22 +10,22 @@ import (
 )
 
 const (
-	CONN_ROUTE_REGEXP = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected, ([^\,]+)`
-	LINE_BREAK_REGEXP = `\[.*] via ([^\,]+)`
-	REGULAR_ROUTE_REGEXP = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? [/\d\[\]]+ via ([^\,]+)`
-	SUMMARY_ROUTE_REGEXP =`(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is a summary(, .+?)?([^\,, ]+)$`
-	COMMON_MASK_REGEXP = `/(\d{1,2})`
+	conn_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected, ([^\,]+)`
+	line_break_regexp = `\[.*] via ([^\,]+)`
+	regular_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? [/\d\[\]]+ via ([^\,]+)`
+	summary_route_regexp =`(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is a summary(, .+?)?([^\,, ]+)$`
+	common_mask_regexp = `/(\d{1,2})`
 )
 
-var connRouteComp = regexp.MustCompile(CONN_ROUTE_REGEXP)
-var lineBreakComp = regexp.MustCompile(LINE_BREAK_REGEXP)
-var commonMaskComp = regexp.MustCompile(COMMON_MASK_REGEXP)
-var summaryRouteComp = regexp.MustCompile(SUMMARY_ROUTE_REGEXP)
+var connRouteComp = regexp.MustCompile(conn_route_regexp)
+var lineBreakComp = regexp.MustCompile(line_break_regexp)
+var commonMaskComp = regexp.MustCompile(common_mask_regexp)
+var summaryRouteComp = regexp.MustCompile(summary_route_regexp)
 
 
-func ParseRoute(r io.Reader) *RoutingTable {
+func ParseRouteIOS(r io.Reader) *RoutingTable {
 
-	var RT = NewRoutingTable()
+	var RT = newRoutingTable("default")
 	var commonMask string
 
 	scanner := bufio.NewScanner(r)
@@ -46,7 +46,7 @@ func ParseRoute(r io.Reader) *RoutingTable {
 			if route == nil {
 				continue
 			}
-			RT.AddRoute(route)
+			RT.addRoute(route)
 
 		// case for summary discard route, for example:
 		// O        33.33.33.0/24 is a summary, 00:00:14, Null0
@@ -56,24 +56,24 @@ func ParseRoute(r io.Reader) *RoutingTable {
 			if route == nil {
 				continue
 			}
-			RT.AddRoute(route)
+			RT.addRoute(route)
 		
 		// case for regular route, for example:
 		// O        172.17.10.0/24 [110/41] via 192.168.199.35, 1w5d, Vlan889
-		} else if m, _ := regexp.MatchString(REGULAR_ROUTE_REGEXP, line); m {
-			matches := regexp.MustCompile(REGULAR_ROUTE_REGEXP).FindStringSubmatch(line)
+		} else if m, _ := regexp.MatchString(regular_route_regexp, line); m {
+			matches := regexp.MustCompile(regular_route_regexp).FindStringSubmatch(line)
 			route := routeCreate(matches, []int{1,2,3,4}, commonMask, RT)
 			if route == nil {
 				continue
 			}
-			RT.AddRoute(route)
+			RT.addRoute(route)
 			
 		// case for linebreak with via
 		// [110/41] via 192.168.199.34, 1w5d, Vlan889
 		} else if strings.HasPrefix(strings.TrimSpace(line), "[") {
 			matches := lineBreakComp.FindStringSubmatch(line)
-			nh := NewNextHop(matches[1])
-			RT.GetLast().AddNextHop(nh)
+			nh := newNextHop(matches[1])
+			RT.getLast().addNextHop(nh)
 
 		// just not for log.Warn to be triggered
 		// 33.0.0.0/8 is variably subnetted, 3 subnets, 2 masks
@@ -91,7 +91,7 @@ func ParseRoute(r io.Reader) *RoutingTable {
 // routeCreate func creates *Route object from slice of strings (matches) and corresponding
 // indexes (regGroup) for those strings in the slice
 func routeCreate(matches []string, capGroup []int, commonMask string, rt *RoutingTable) *Route {
-	var route = NewRoute(rt)
+	var route = newRoute(rt)
 
 	rtypeIndex := capGroup[0]
 	prefIndex := capGroup[1]
@@ -106,12 +106,12 @@ func routeCreate(matches []string, capGroup []int, commonMask string, rt *Routin
 	}
 	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
 	if err != nil {
-		WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+		warnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
 		return nil
 	}
 	route.Type = rtype
 	route.Network = prefix
-	nh := NewNextHop(matches[nhIndex])
-	route.AddNextHop(nh)
+	nh := newNextHop(matches[nhIndex])
+	route.addNextHop(nh)
 	return route
 }
