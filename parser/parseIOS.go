@@ -5,7 +5,6 @@ import (
 	"strings"
 	"net/netip"
 	"regexp"
-	"io"
 	"bufio"
 )
 
@@ -25,12 +24,12 @@ var summaryRouteComp = regexp.MustCompile(summary_route_regexp)
 var tableNameComp = regexp.MustCompile(table_name_regexp)
 
 
-func ParseRouteIOS(r io.Reader) *RoutingTable {
+func parseRouteIOS(t *tableSource) *RoutingTable {
 
 	var RT = newRoutingTable("default")
 	var commonMask string
 
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(t.Source)
 	for scanner.Scan() {
 		line := scanner.Text()
 	
@@ -99,7 +98,7 @@ func ParseRouteIOS(r io.Reader) *RoutingTable {
 
 // routeCreate func creates *Route object from slice of strings (matches) and corresponding
 // indexes (regGroup) for those strings in the slice
-func routeCreate(matches []string, capGroup []int, commonMask string, rt *RoutingTable) *Route {
+func routeCreate(matches []string, capGroup []int, commonMask string, rt *RoutingTable) *route {
 	var route = newRoute(rt)
 
 	rtypeIndex := capGroup[0]

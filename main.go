@@ -20,7 +20,8 @@ func main() {
 	InfoLogger.Println("Starting...")
 
 	var iFileName = flag.String("i", "", "input 'ip route' file to parse data from")
-	if len(os.Args) < 1 {
+	var platform = flag.String("os", "", "OS family for the specified 'ip route' file")
+	if len(os.Args) < 2 {
 		ErrorLogger.Fatalf("No input data provided, use -h flag for help. Exiting...")
 	}
 	flag.Parse()
@@ -32,7 +33,8 @@ func main() {
 	defer iFile.Close()
 
 	InfoLogger.Println("Parsing routes...")
-	allRoutes = parser.ParseRouteIOS(iFile)
+	tableSource := parser.NewTableSource(*platform, iFile)
+	allRoutes = tableSource.Parse()
 	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
 	Menu()
 }

@@ -56,7 +56,8 @@ func TestMain(m *testing.M) {
 func setup(){
 	infoLogger.Println("Initiating testing routing table...")
 	r := strings.NewReader(ipRoute)
-	allRoutes = ParseRouteIOS(r)
+	tableSource := NewTableSource("ios", r)
+	allRoutes = tableSource.Parse()
 }
 
 func teardown() {
@@ -83,44 +84,44 @@ func Test_RouteLookup(t *testing.T) {
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
-		res := []*Route{}
+		res := []*route{}
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("189.110.135.77/32")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("189.110.135.77/32")}, res)
 	})
 	t.Run("correct ip present in routing table, all matches, correct output order", func(t *testing.T) {
 		routes, err := allRoutes.FindRoutes("189.110.135.77", true)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
-		res := []*Route{}
+		res := []*route{}
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("189.110.135.77/32"), allRoutes.getByNetwork("189.110.135.72/29")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("189.110.135.77/32"), allRoutes.getByNetwork("189.110.135.72/29")}, res)
 	})
 	t.Run("correct ip subnet address in routing table, exact match", func(t *testing.T) {
 		routes, err := allRoutes.FindRoutes("33.33.33.0", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
-		res := []*Route{}
+		res := []*route{}
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("33.33.33.0/24")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("33.33.33.0/24")}, res)
 	})
 	t.Run("correct ip address in routing table, multiple NH", func(t *testing.T) {
 		routes, err := allRoutes.FindRoutes("172.31.10.0", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
-		res := []*Route{}
+		res := []*route{}
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
 		assert.Equal(t, 2, (res[0].nhCount()))
 	})
 	t.Run("correct ip not present in routing table", func(t *testing.T) {
@@ -128,11 +129,11 @@ func Test_RouteLookup(t *testing.T) {
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
-		res := []*Route{}
+		res := []*route{}
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{}, res)
+		assert.Equal(t, []*route{}, res)
 	})
 	t.Run("incorrect ip", func(t *testing.T) {
 		_, err := allRoutes.FindRoutes("1.2.323.4", false)
@@ -150,35 +151,35 @@ func Test_RouteLookup(t *testing.T) {
 
 func Test_FindByNexthop(t *testing.T) {
 	t.Run("correct next hop(IP), route present in routing table", func(t *testing.T) {
-		res := []*Route{}
+		res := []*route{}
 		routes := allRoutes.FindRoutesByNH("192.168.19.35")
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
 	})
 	t.Run("correct next hop(interface), route present in routing table", func(t *testing.T) {
-		res := []*Route{}
+		res := []*route{}
 		routes := allRoutes.FindRoutesByNH("Port-channel2.21")
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{allRoutes.getByNetwork("193.1.2.112/28"), allRoutes.getByNetwork("193.1.2.119/32")}, res)
+		assert.Equal(t, []*route{allRoutes.getByNetwork("193.1.2.112/28"), allRoutes.getByNetwork("193.1.2.119/32")}, res)
 	})
 	t.Run("incorrect next hop", func(t *testing.T) {
-		res := []*Route{}
+		res := []*route{}
 		routes := allRoutes.FindRoutesByNH("dfkffdkjs ds ")
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{}, res)
+		assert.Equal(t, []*route{}, res)
 	})
 	t.Run("blank next hop", func(t *testing.T) {
-		res := []*Route{}
+		res := []*route{}
 		routes := allRoutes.FindRoutesByNH("")
 		for r := range routes {
 			res = append(res, r)
 		}
-		assert.Equal(t, []*Route{}, res)
+		assert.Equal(t, []*route{}, res)
 	})
 }
