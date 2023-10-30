@@ -12,8 +12,9 @@ const MENU_TEXT = `
 Possible values for selection:
 1 - do route lookup based on entered IP
 2 - do route lookup based on entered Next-hop
-3 - Print list of all unique Next-hops
-9 - Exit the program
+3 - print list of all unique Next-hops
+8 - print raw routingTable object (for debug)
+9 - exit the program
 ======================================`
 
 // main menu func
@@ -46,6 +47,8 @@ mainLoop:
 			for nh := range nhs {
 				fmt.Println(nh)
 			}
+		case choise == "8":
+			fmt.Println(allRoutes)
 		case choise == "9":
 			break mainLoop
 		}
