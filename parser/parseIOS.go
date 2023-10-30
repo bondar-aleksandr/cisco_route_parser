@@ -90,7 +90,7 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 
 		//for debug purposes
 		// } else {
-		// 	WarnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)
+		// 	warnLogger.Printf("Line is not matched against any rule. Line: %s\n", line)
 		}
 	}
 	return RT

@@ -22,7 +22,7 @@ var (
 type tableSource struct {
 	Platform string
 	Source io.Reader
-	parser func(* tableSource) *RoutingTable
+	parser func(*tableSource) *RoutingTable
 }
 
 // Constructor. Creates *tableSource object, where p specifies platform type, s specifies reader
@@ -74,6 +74,14 @@ func newRoute(rt *RoutingTable) *route {
 		NHList: make([]uint64, 0),
 		ParentRT: rt,
 	}
+}
+
+// to reset attributes to default values, except 'ParentRT'
+// TODO: find out how to setup default value for r.Network
+func (r *route) reset() {
+	r.NHList = make([]uint64, 0)
+	r.Type = ""
+	// r.Network = nil
 }
 
 // whenever NH is added to the Route object, it's also added to RoutingTable object
