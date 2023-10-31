@@ -47,8 +47,12 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 		} else if strings.Contains(line, "*via ") {
 			matches := viaStringComp_NXOS.FindStringSubmatch(line)
 			nh := newNextHop(matches[1])
-			route.addNextHop(nh)
+			nhIntf := matches[3]
 			rtype := matches[4]
+			if rtype == "direct" || nhIntf == "local" {
+				nh.setIntf(nhIntf)
+			}
+			route.addNextHop(nh)
 			route.Type = rtype
 
 			RT.addRoute(route)

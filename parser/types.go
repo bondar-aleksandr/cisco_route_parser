@@ -42,7 +42,8 @@ func NewTableSource(p string, s io.Reader) *tableSource {
 	}
 }
 
-// runs corresponding parser
+// Run parser based on 'Platform' attribute. Returns *RoutingTable object, populated
+// with values from 'Source' attribute
 func(ts *tableSource) Parse() *RoutingTable {
 	switch ts.Platform {
 	case "ios":
@@ -50,10 +51,12 @@ func(ts *tableSource) Parse() *RoutingTable {
 	case "nxos":
 		return parseRouteNXOS(ts)
 	}
-	return newRoutingTable()
+	return nil
 }
 
-//Single route entity
+// Type to describe route entity. 'ParentRT' attribute refers to *RoutingTable
+// this route belongs. NHList attribute stores next-hop hashes, which are used by
+// this route.
 type route struct {
 	Network netip.Prefix
 	Type string
@@ -69,7 +72,7 @@ func (r *route) String() string {
 	return fmt.Sprintf("%s route to %s network via %v", r.Type, r.Network.String(), nhlist)
 }
 
-// Constructor
+// Returns pointer to new route object with 'ParentRT' attribute set up to rt value
 func newRoute(rt *RoutingTable) *route {
 	return &route{
 		NHList: make([]uint64, 0),
@@ -77,7 +80,8 @@ func newRoute(rt *RoutingTable) *route {
 	}
 }
 
-// whenever NH is added to the Route object, it's also added to RoutingTable object
+// to add nextHop to route. Whenever NH is added to the route object, 
+// it's also added to RoutingTable object
 func (r *route) addNextHop(nh *nextHop) {
 	r.ParentRT.addNextHop(nh)
 	r.NHList = append(r.NHList, nh.getHash())
@@ -88,20 +92,31 @@ func (r *route) nhCount() int {
 	return len(r.NHList)
 }
 
-// Nexthop entity
+// Type to describe nexthop entity
 type nextHop struct {
 	IsIP bool
 	Addr netip.Addr `hash:"string"`
 	Intf string
 }
 
-// Constructor
+// Returns pointer to new nextHop object. Attributes IsIP, Addr, Intf automatically
+// filled based on 's' argument parsing resut. If 's' is parsed to netip.Addr, then
+// attribute 'Addr' set up to netip.Addr parsed, 'IsIP' set up to true. Otherwise,
+// Intf set up to 's', IsIP set up to false
 func newNextHop(s string) *nextHop {
 	if v , err := netip.ParseAddr(s); err != nil {
 		return &nextHop{IsIP: false, Intf: s}
 	} else {
 		return &nextHop{IsIP: true, Addr: v}
 	}
+}
+
+// Needed for NXOS next-hops, where via part is always IP, regardless of route
+// type (directly connected, local, etc.)
+func (nh *nextHop) setIntf (s string) {
+	nh.Intf = s
+	nh.IsIP = false
+	nh.Addr = netip.Addr{}
 }
 
 func (nh *nextHop) String() string {
@@ -127,7 +142,7 @@ type RoutingTable struct{
 	NH map[uint64]*nextHop
 }
 
-// Constructor for Routing table
+// Constructor for Routing table. Default table name is 'default'
 func newRoutingTable() *RoutingTable {
 	return &RoutingTable{
 		Table: "default",
