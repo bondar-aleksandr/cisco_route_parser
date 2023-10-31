@@ -190,15 +190,17 @@ func (rt *RoutingTable) getByNetwork(s string) *route {
 	return nil
 }
 
-// FindRoutes func return channel of *Route objects, which contain "ip" specified.
-// Routes put in channel are ordered based on prefix lenght, starting from more specific
-// If "all" flag is specified, func return all matched routes, otherwise only best match returned
-func (rt *RoutingTable) FindRoutes(ip string, all bool) (<-chan *route, error) {
+// FindRoutes func return number of routes found, channel of *route objects, which contain "ip"
+// specified and error if any. Routes put in channel are ordered based on prefix lenght, 
+// starting from more specific. If "all" flag is specified, func return all matched routes,
+// otherwise only best match returned
+func (rt *RoutingTable) FindRoutes(ip string, all bool) (int, <-chan *route, error) {
+	count := 0
 	out := make(chan *route)
 	parsedIp, err := netip.ParseAddr(ip)
 	if err != nil {
 		close(out)
-		return out, err
+		return count, out, err
 	}
 
 	indexes := []*route{}
@@ -210,7 +212,7 @@ func (rt *RoutingTable) FindRoutes(ip string, all bool) (<-chan *route, error) {
 	// if no routes found
 	if len(indexes) == 0 {
 		close(out)
-		return out, nil
+		return count, out, nil
 	}
 	sort.Slice(indexes, func(i, j int) bool {
 		return indexes[i].Network.Bits() > indexes[j].Network.Bits()
@@ -220,18 +222,20 @@ func (rt *RoutingTable) FindRoutes(ip string, all bool) (<-chan *route, error) {
 	if !all {
 		indexes = indexes[:1]
 	}
+	count = len(indexes)
 	go func(){
 		defer close(out)
 		for _,v := range indexes {
 			out <- v
 		}
 	}()
-	return out, nil
+	return count, out, nil
 }
 
 // FindRoutesByNH func finds all routes with specified nexthop.
-// Result returned as a channel
-func (rt *RoutingTable) FindRoutesByNH(n string) <-chan *route {
+// Returns number of routes found, and channel with those *route objects.
+func (rt *RoutingTable) FindRoutesByNH(n string) (int, <-chan *route) {
+	count := 0
 	out := make(chan *route)
 	nh := newNextHop(n)
 	res := []*route{}
@@ -245,20 +249,23 @@ func (rt *RoutingTable) FindRoutesByNH(n string) <-chan *route {
 	// if no routes found
 	if len(res) == 0 {
 		close(out)
-		return out
+		return count, out
 	}
+	count = len(res)
 	go func(){
 		defer close(out)
 		for _,v := range res {
 			out <- v
 		}
 	}()
-	return out
+	return count, out
 }
 
-// FindUniqNexthop func finds all unique NextHop objects. Result returned as a channel.
+// FindUniqNexthop func finds all unique *next-hop objects. 
+// Returns number if next-hops found, and channel with those *next-hop objects.
 // "ipOnly" flag gives ability to specify whether we need to get only NextHops with IP address
-func (rt *RoutingTable) FindUniqNexthops (ipOnly bool) <-chan *nextHop {
+func (rt *RoutingTable) FindUniqNexthops (ipOnly bool) (int, <-chan *nextHop) {
+	count := 0
 	out := make(chan *nextHop)
 	nhList := []*nextHop{}
 	for _, nh := range rt.NH {
@@ -270,11 +277,12 @@ func (rt *RoutingTable) FindUniqNexthops (ipOnly bool) <-chan *nextHop {
 			nhList = append(nhList, nh)
 		}
 	}
+	count = len(nhList)
 	go func(){
 		defer close(out)
 		for _,v := range nhList {
 			out <-v
 		}
 	}()
-	return out
+	return count, out
 }

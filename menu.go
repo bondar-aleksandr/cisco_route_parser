@@ -26,24 +26,24 @@ mainLoop:
 		switch {
 		case choise == "1":
 			ip := requestUserInput("Enter IP:")
-			routes, err := allRoutes.FindRoutes(ip, true)
+			n, routes, err := allRoutes.FindRoutes(ip, true)
 			if err != nil {
 				ErrorLogger.Printf("Cannot parse IP because of: %q", err)
 			}
-			fmt.Println("Matched routes:")
+			fmt.Printf("Found %d routes:\n", n)
 			for r := range routes {
 				fmt.Println(r)
 			}
 		case choise == "2":
 			nh := requestUserInput("Enter Next-hop value, either IP or interface format accepted:")
-			routes := allRoutes.FindRoutesByNH(nh)
-			fmt.Println("Matched routes:")
+			n, routes := allRoutes.FindRoutesByNH(nh)
+			fmt.Printf("Found %d routes:\n", n)
 			for r := range routes {
 				fmt.Println(r)
 			}
 		case choise == "3":
-			nhs := allRoutes.FindUniqNexthops(false)
-			fmt.Println("Unique nexthops:")
+			n, nhs := allRoutes.FindUniqNexthops(false)
+			fmt.Printf("Found %d unique nexthops:\n", n)
 			for nh := range nhs {
 				fmt.Println(nh)
 			}

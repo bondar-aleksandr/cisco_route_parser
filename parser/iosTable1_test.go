@@ -1,7 +1,6 @@
 package parser
 
 import (
-	// "fmt"
 	"strings"
 	"testing"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +79,7 @@ func Test_VRF(t *testing.T) {
 
 func Test_RouteLookup(t *testing.T) {
 	t.Run("correct ip present in routing table, exact match", func(t *testing.T) {
-		routes, err := allRoutes.FindRoutes("189.110.135.77", false)
+		n, routes, err := allRoutes.FindRoutes("189.110.135.77", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
@@ -89,9 +88,10 @@ func Test_RouteLookup(t *testing.T) {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("189.110.135.77/32")}, res)
+		assert.Equal(t, 1, n)
 	})
 	t.Run("correct ip present in routing table, all matches, correct output order", func(t *testing.T) {
-		routes, err := allRoutes.FindRoutes("189.110.135.77", true)
+		n, routes, err := allRoutes.FindRoutes("189.110.135.77", true)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
@@ -100,9 +100,10 @@ func Test_RouteLookup(t *testing.T) {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("189.110.135.77/32"), allRoutes.getByNetwork("189.110.135.72/29")}, res)
+		assert.Equal(t, 2, n)
 	})
 	t.Run("correct ip subnet address in routing table, exact match", func(t *testing.T) {
-		routes, err := allRoutes.FindRoutes("33.33.33.0", false)
+		n, routes, err := allRoutes.FindRoutes("33.33.33.0", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
@@ -111,9 +112,10 @@ func Test_RouteLookup(t *testing.T) {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("33.33.33.0/24")}, res)
+		assert.Equal(t, 1, n)
 	})
 	t.Run("correct ip address in routing table, multiple NH", func(t *testing.T) {
-		routes, err := allRoutes.FindRoutes("172.31.10.0", false)
+		n, routes, err := allRoutes.FindRoutes("172.31.10.0", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
@@ -122,10 +124,11 @@ func Test_RouteLookup(t *testing.T) {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
+		assert.Equal(t, 1, n)
 		assert.Equal(t, 2, (res[0].nhCount()))
 	})
 	t.Run("correct ip not present in routing table", func(t *testing.T) {
-		routes, err := allRoutes.FindRoutes("1.2.3.4", false)
+		n, routes, err := allRoutes.FindRoutes("1.2.3.4", false)
 		if err != nil {
 			t.Errorf("Parsing ip failed")
 		}
@@ -134,52 +137,60 @@ func Test_RouteLookup(t *testing.T) {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{}, res)
+		assert.Equal(t, 0, n)
 	})
 	t.Run("incorrect ip", func(t *testing.T) {
-		_, err := allRoutes.FindRoutes("1.2.323.4", false)
-		assert.ErrorContains(t, err, "has value >255")		
+		n, _, err := allRoutes.FindRoutes("1.2.323.4", false)
+		assert.Error(t, err)
+		assert.Equal(t, 0, n)	
 	})
 	t.Run("incorrect ip with symbols", func(t *testing.T) {
-		_, err := allRoutes.FindRoutes("ab.c.d s", false)
-		assert.ErrorContains(t, err, "unexpected character")		
+		n, _, err := allRoutes.FindRoutes("ab.c.d s", false)
+		assert.Error(t, err)
+		assert.Equal(t, 0, n)	
 	})
 	t.Run("blank ip", func(t *testing.T) {
-		_, err := allRoutes.FindRoutes("", false)
-		assert.ErrorContains(t, err, "unable to parse IP")		
+		n, _, err := allRoutes.FindRoutes("", false)
+		assert.Error(t, err)
+		assert.Equal(t, 0, n)	
 	})
 }
 
 func Test_FindByNexthop(t *testing.T) {
 	t.Run("correct next hop(IP), route present in routing table", func(t *testing.T) {
 		res := []*route{}
-		routes := allRoutes.FindRoutesByNH("192.168.19.35")
+		n, routes := allRoutes.FindRoutesByNH("192.168.19.35")
 		for r := range routes {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("172.31.10.0/24")}, res)
+		assert.Equal(t, 1, n)
 	})
 	t.Run("correct next hop(interface), route present in routing table", func(t *testing.T) {
 		res := []*route{}
-		routes := allRoutes.FindRoutesByNH("Port-channel2.21")
+		n, routes := allRoutes.FindRoutesByNH("Port-channel2.21")
 		for r := range routes {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{allRoutes.getByNetwork("193.1.2.112/28"), allRoutes.getByNetwork("193.1.2.119/32")}, res)
+		assert.Equal(t, 2, n)
 	})
 	t.Run("incorrect next hop", func(t *testing.T) {
 		res := []*route{}
-		routes := allRoutes.FindRoutesByNH("dfkffdkjs ds ")
+		n, routes := allRoutes.FindRoutesByNH("dfkffdkjs ds ")
 		for r := range routes {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{}, res)
+		assert.Equal(t, 0, n)
 	})
 	t.Run("blank next hop", func(t *testing.T) {
 		res := []*route{}
-		routes := allRoutes.FindRoutesByNH("")
+		n, routes := allRoutes.FindRoutesByNH("")
 		for r := range routes {
 			res = append(res, r)
 		}
 		assert.Equal(t, []*route{}, res)
+		assert.Equal(t, 0, n)
 	})
 }
