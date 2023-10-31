@@ -77,14 +77,6 @@ func newRoute(rt *RoutingTable) *route {
 	}
 }
 
-// to reset attributes to default values, except 'ParentRT'
-// TODO: find out how to setup default value for r.Network
-func (r *route) reset() {
-	r.NHList = make([]uint64, 0)
-	r.Type = ""
-	// r.Network = nil
-}
-
 // whenever NH is added to the Route object, it's also added to RoutingTable object
 func (r *route) addNextHop(nh *nextHop) {
 	r.ParentRT.addNextHop(nh)

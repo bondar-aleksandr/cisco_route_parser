@@ -52,7 +52,8 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 			route.Type = rtype
 
 			RT.addRoute(route)
-			route.reset()
+			// create a new route for next iteration, since route is pointer
+			route = newRoute(RT)
 			
 		//for debug purposes
 		// } else {
