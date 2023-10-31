@@ -26,7 +26,7 @@ var tableNameComp = regexp.MustCompile(table_name_regexp)
 
 func parseRouteIOS(t *tableSource) *RoutingTable {
 
-	var RT = newRoutingTable("default")
+	var RT = newRoutingTable()
 	var commonMask string
 
 	scanner := bufio.NewScanner(t.Source)

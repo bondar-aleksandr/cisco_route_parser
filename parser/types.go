@@ -22,34 +22,35 @@ var (
 type tableSource struct {
 	Platform string
 	Source io.Reader
-	parser func(*tableSource) *RoutingTable
 }
 
 // Constructor. Creates *tableSource object, where p specifies platform type, s specifies reader
 // to read data from.
 func NewTableSource(p string, s io.Reader) *tableSource {
 	var platform string
-	var parser func(*tableSource) *RoutingTable
 	switch {
 	case p == "ios":
 		platform = p
-		parser = parseRouteIOS
 	case p == "nxos":
 		platform = p
-		parser = parseRouteNXOS
 	default:
 		errorLogger.Fatalf("Wrong platform value specified! Exiting...")
 	}
 	return &tableSource{
 		Platform: platform,
 		Source: s,
-		parser: parser,
 	}
 }
 
 // runs corresponding parser
 func(ts *tableSource) Parse() *RoutingTable {
-	return ts.parser(ts)
+	switch ts.Platform {
+	case "ios":
+		return parseRouteIOS(ts)
+	case "nxos":
+		return parseRouteNXOS(ts)
+	}
+	return newRoutingTable()
 }
 
 //Single route entity
@@ -136,9 +137,9 @@ type RoutingTable struct{
 }
 
 // Constructor for Routing table
-func newRoutingTable(table string) *RoutingTable {
+func newRoutingTable() *RoutingTable {
 	return &RoutingTable{
-		Table: table,
+		Table: "default",
 		Routes: make([]*route, 0),
 		NH: make(map[uint64]*nextHop),
 	}

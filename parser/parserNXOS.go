@@ -19,7 +19,7 @@ var viaStringComp_NXOS = regexp.MustCompile(via_string_NXOS)
 
 func parseRouteNXOS(t *tableSource) *RoutingTable {
 
-	var RT = newRoutingTable("default")
+	var RT = newRoutingTable()
 	var route = newRoute(RT)
 
 	scanner := bufio.NewScanner(t.Source)
