@@ -2,9 +2,9 @@ package parser
 
 import (
 	"bufio"
-	"strings"
-	"regexp"
 	"net/netip"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -44,12 +44,13 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 
 		// case for line where next-hop specified
 		// *via 192.168.199.33, Vlan889, [110/41], 1w3d, ospf-10, intra
+		// *via 192.168.255.252, Lo0, [0/0], 2w5d, direct
 		} else if strings.Contains(line, "*via ") {
 			matches := viaStringComp_NXOS.FindStringSubmatch(line)
 			nh := newNextHop(matches[1])
 			nhIntf := matches[3]
 			rtype := matches[4]
-			if rtype == "direct" || nhIntf == "local" {
+			if rtype == "direct" || rtype == "local" || rtype == "hsrp" {
 				nh.setIntf(nhIntf)
 			}
 			route.addNextHop(nh)
