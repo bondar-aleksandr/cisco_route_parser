@@ -121,7 +121,6 @@ func (nh *nextHop) getHash() (uint64) {
 
 // Routing table type. Consists of *Route slice and *nextHop map. Only unique next-hops are stored.
 // Next-hops stored in map, where keys are their hashes, values are hext-hops themselves.
-// TODO: add table name (vrf), add to parser as well
 type RoutingTable struct{
 	Table string
 	Routes []*route
@@ -140,11 +139,11 @@ func newRoutingTable() *RoutingTable {
 func (rt *RoutingTable) String() string {
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("Table: %s\n", rt.Table))
-	b.WriteString("Routes:\n")
+	b.WriteString(fmt.Sprintf("Routes: %d\n", rt.RoutesCount()))
 	for _,v := range rt.Routes {
 		b.WriteString(v.String() + "\n")
 	}
-	b.WriteString("Next-Hops:\n")
+	b.WriteString(fmt.Sprintf("Next-Hops: %d\n", rt.NHCount()))
 	for k,v := range rt.NH {
 		b.WriteString(fmt.Sprintf("%d : %v\n", k, v))
 	}
