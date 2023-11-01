@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	conn_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected, ([^\,]+)`
+	conn_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected,( \w+,)? (\S+)$`
 	line_break_regexp = `\[.*] via ([^\,]+)`
 	regular_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? [/\d\[\]]+ via ([^\,]+)`
 	summary_route_regexp =`(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is a summary(, .+?)?([^\,, ]+)$`
@@ -50,7 +50,7 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 		// C        33.33.33.33/32 is directly connected, Loopback102
 		} else if strings.Contains(line, "is directly connected") {
 			matches := connRouteComp.FindStringSubmatch(line)
-			route := routeCreate(matches, []int{1,2,3,4}, commonMask, RT)
+			route := routeCreate(matches, []int{1,2,3,5}, commonMask, RT)
 			if route == nil {
 				continue
 			}

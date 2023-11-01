@@ -9,8 +9,8 @@ import (
 
 func Test_ParsingNXOS(t *testing.T) {
 	t.Run("parsing, amount of routes and NHs", func(t *testing.T) {
-		assert.Equal(t, 133, nxosRoutes.RoutesCount())
-		assert.Equal(t, 12, nxosRoutes.NHCount())
+		assert.Equal(t, 135, nxosRoutes.RoutesCount())
+		assert.Equal(t, 13, nxosRoutes.NHCount())
 	})
 }
 
