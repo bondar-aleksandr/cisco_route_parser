@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"regexp"
 	"strings"
+	"slices"
 )
 
 const (
@@ -16,6 +17,8 @@ const (
 var tableNameComp_NXOS = regexp.MustCompile(table_name_regexp_NXOS)
 var routeStringComp_NXOS = regexp.MustCompile(route_string_NXOS)
 var viaStringComp_NXOS = regexp.MustCompile(via_string_NXOS)
+
+var direct_routes_NXOS = []string{"direct", "local", "hsrp", "glbp", "vrrp"}
 
 func parseRouteNXOS(t *tableSource) *RoutingTable {
 
@@ -41,22 +44,26 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 				continue
 			}
 			route.Network = pref
+			RT.addRoute(route)
 
 		// case for line where next-hop specified
 		// *via 192.168.199.33, Vlan889, [110/41], 1w3d, ospf-10, intra
 		// *via 192.168.255.252, Lo0, [0/0], 2w5d, direct
 		} else if strings.Contains(line, "*via ") {
 			matches := viaStringComp_NXOS.FindStringSubmatch(line)
-			nh := newNextHop(matches[1])
+			nhStr := matches[1]
+			nh := newNextHop(nhStr)
 			nhIntf := matches[3]
 			rtype := matches[4]
-			if rtype == "direct" || rtype == "local" || rtype == "hsrp" {
+
+			// for cases where IP after '*via' needs to be replaced with interface (connected routes),
+			// or where there is no IP after '*via' (summary, discard routes, routes via p2p interfaces, etc.)
+			if slices.Contains(direct_routes_NXOS, rtype) || nhStr == "" {
 				nh.setIntf(nhIntf)
 			}
-			route.addNextHop(nh)
-			route.Type = rtype
+			RT.getLast().addNextHop(nh)
+			RT.getLast().Type = rtype
 
-			RT.addRoute(route)
 			// create a new route for next iteration, since route is pointer
 			route = newRoute(RT)
 			
