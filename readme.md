@@ -1,6 +1,6 @@
 # Cisco ip-route parser
 
-Sometimes it's problematic to find actual route in routing table to match certain IP address (because of many matching routes with different masks, summarisation, etc.), espetially when you have only output from "show ip route" command, without live iteraction with router.
+Sometimes it's problematic to find actual route in routing table to match certain IP address (because of many matching routes with different masks, summarisation, etc.), espetially when you have only output from "show ip route" command, without live iteraction with router.  
 This app is intended for working with cisco routing tables. It parses routng table, and do actual route lookup based on different conditions (classic longest-match lookup, lookup based on next-hop value, etc.).
 The following functionality is available:
 - route lookup based on entered IP address
