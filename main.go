@@ -19,8 +19,8 @@ func main() {
 
 	InfoLogger.Println("Starting...")
 
-	var iFileName = flag.String("i", "", "input 'ip route' file to parse data from")
-	var platform = flag.String("os", "", "OS family for the specified 'ip route' file")
+	var iFileName = flag.String("i", "", "input 'ip route' filename to parse data from")
+	var platform = flag.String("os", "", "OS family for the specified 'ip route' file. Allowed values are 'ios', 'nxos'")
 	if len(os.Args) < 2 {
 		ErrorLogger.Fatalf("No input data provided, use -h flag for help. Exiting...")
 	}
