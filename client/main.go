@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"log"
 	"os"
-	"flag"
+
 	"github.com/bondar-aleksandr/cisco_route_parser/parser"
+	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -14,6 +19,9 @@ var (
 )
 //var to store all parsed routes
 var allRoutes *parser.RoutingTable
+
+const serverAddr = "localhost:50051"
+const chunkSize = 1400
 
 func main() {
 
@@ -26,15 +34,20 @@ func main() {
 	}
 	flag.Parse()
 
-	iFile, err := os.Open(*iFileName)
+	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		ErrorLogger.Fatalf("Can not open file %q because of: %q", *iFileName, err)
+		log.Fatalf("Failed to dial %s, : %v\n", serverAddr, err)
 	}
-	defer iFile.Close()
+	defer conn.Close()
+	c := pb.NewRouteParserClient(conn)
+	ctx := context.Background()
+	Upload(ctx, c, iFileName, platform)
 
-	InfoLogger.Println("Parsing routes...")
-	tableSource := parser.NewTableSource(*platform, iFile)
-	allRoutes = tableSource.Parse()
-	InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
-	Menu()
+	
+
+	// InfoLogger.Println("Parsing routes...")
+	// tableSource := parser.NewTableSource(*platform, iFile)
+	// allRoutes = tableSource.Parse()
+	// InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
+	// Menu()
 }
