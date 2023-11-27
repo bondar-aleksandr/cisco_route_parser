@@ -15,7 +15,7 @@ func(c *ClientService) Upload(ctx context.Context, fName *string, platform *stri
 	}
 	defer iFile.Close()
 	
-	stream, err := c.client.FileTransfer(ctx)
+	stream, err := c.client.Upload(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func(c *ClientService) Upload(ctx context.Context, fName *string, platform *stri
 	if err != nil {
 		return err
 	}
-	c.setToken(res.FileName)
+	c.setSession(res.FileName)
 	log.Printf("Successfully send file %s over gRPC, file stored as %s", *fName, res.FileName )
 	return nil
 }

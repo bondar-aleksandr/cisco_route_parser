@@ -3,7 +3,6 @@ package main
 import (
 	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
 	"github.com/bondar-aleksandr/cisco_route_parser/parser"
-	"fmt"
 )
 
 type ServerService struct {
@@ -19,5 +18,9 @@ func NewServerService () *ServerService {
 
 func(s *ServerService) newSession (id string, rt *parser.RoutingTable) {
 	s.sessionCache[id] = rt
-	fmt.Println(s.sessionCache)
+}
+
+func(s *ServerService) sessionLookup(id string) (*parser.RoutingTable, bool) {
+	rt, ok := s.sessionCache[id]
+	return rt, ok
 }

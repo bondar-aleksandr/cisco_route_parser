@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *ServerService) FileTransfer(stream pb.RouteParser_FileTransferServer) error {
+func (s *ServerService) Upload(stream pb.RouteParser_UploadServer) error {
 	file := NewFile()
 	defer file.Close()
 

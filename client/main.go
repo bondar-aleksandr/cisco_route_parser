@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bondar-aleksandr/cisco_route_parser/parser"
+	// "github.com/bondar-aleksandr/cisco_route_parser/parser"
 	// pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
 
 )
@@ -17,7 +17,8 @@ var (
 	ErrorLogger *log.Logger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 //var to store all parsed routes
-var allRoutes *parser.RoutingTable
+// var allRoutes *parser.RoutingTable
+var c *ClientService
 
 
 
@@ -34,12 +35,15 @@ func main() {
 
 	ctx := context.Background()
 
-	c := NewClientService()
-	c.Upload(ctx, iFileName, platform)
+	c = NewClientService()
+	err := c.Upload(ctx, iFileName, platform)
+	if err != nil {
+		log.Fatalf("Failed to upload file to gRPC server due to: %v", err)
+	}
 		
 	// InfoLogger.Println("Parsing routes...")
 	// tableSource := parser.NewTableSource(*platform, iFile)
 	// allRoutes = tableSource.Parse()
 	// InfoLogger.Printf("Parsing routes done, found %d routes, %d unique nexthops", allRoutes.RoutesCount(), allRoutes.NHCount())
-	// Menu()
+	Menu(ctx)
 }

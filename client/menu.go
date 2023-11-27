@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-	"os"
 	"bufio"
+	"context"
+	"fmt"
+	"os"
+	"strings"
 )
 
 const MENU_TEXT = `
@@ -18,7 +19,7 @@ Possible values for selection:
 ======================================`
 
 // main menu func
-func Menu() {
+func Menu(ctx context.Context) {
 mainLoop:
 	for {
 		fmt.Println(MENU_TEXT)
@@ -26,7 +27,8 @@ mainLoop:
 		switch {
 		case choise == "1":
 			ip := requestUserInput("Enter IP:")
-			n, routes, err := allRoutes.FindRoutes(ip, true)
+			n, routes, err := c.RouteLookupByIP(ctx, ip, true)
+			// n, routes, err := allRoutes.FindRoutes(ip, true)
 			if err != nil {
 				ErrorLogger.Printf("Cannot parse IP because of: %q", err)
 			}
@@ -34,21 +36,21 @@ mainLoop:
 			for r := range routes {
 				fmt.Println(r)
 			}
-		case choise == "2":
-			nh := requestUserInput("Enter Next-hop value, either IP or interface format accepted:")
-			n, routes := allRoutes.FindRoutesByNH(nh)
-			fmt.Printf("Found %d routes:\n", n)
-			for r := range routes {
-				fmt.Println(r)
-			}
-		case choise == "3":
-			n, nhs := allRoutes.FindUniqNexthops(false)
-			fmt.Printf("Found %d unique nexthops:\n", n)
-			for nh := range nhs {
-				fmt.Println(nh)
-			}
-		case choise == "8":
-			fmt.Println(allRoutes)
+		// case choise == "2":
+		// 	nh := requestUserInput("Enter Next-hop value, either IP or interface format accepted:")
+		// 	n, routes := allRoutes.FindRoutesByNH(nh)
+		// 	fmt.Printf("Found %d routes:\n", n)
+		// 	for r := range routes {
+		// 		fmt.Println(r)
+		// 	}
+		// case choise == "3":
+		// 	n, nhs := allRoutes.FindUniqNexthops(false)
+		// 	fmt.Printf("Found %d unique nexthops:\n", n)
+		// 	for nh := range nhs {
+		// 		fmt.Println(nh)
+		// 	}
+		// case choise == "8":
+		// 	fmt.Println(allRoutes)
 		case choise == "9":
 			break mainLoop
 		}

@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	RouteParser_FileTransfer_FullMethodName = "/route_parser.routeParser/FileTransfer"
+	RouteParser_Upload_FullMethodName          = "/route_parser.routeParser/Upload"
+	RouteParser_RouteLookupByIP_FullMethodName = "/route_parser.routeParser/RouteLookupByIP"
 )
 
 // RouteParserClient is the client API for RouteParser service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RouteParserClient interface {
-	FileTransfer(ctx context.Context, opts ...grpc.CallOption) (RouteParser_FileTransferClient, error)
+	Upload(ctx context.Context, opts ...grpc.CallOption) (RouteParser_UploadClient, error)
+	RouteLookupByIP(ctx context.Context, in *RouteLookupByIPRequest, opts ...grpc.CallOption) (RouteParser_RouteLookupByIPClient, error)
 }
 
 type routeParserClient struct {
@@ -37,30 +39,30 @@ func NewRouteParserClient(cc grpc.ClientConnInterface) RouteParserClient {
 	return &routeParserClient{cc}
 }
 
-func (c *routeParserClient) FileTransfer(ctx context.Context, opts ...grpc.CallOption) (RouteParser_FileTransferClient, error) {
-	stream, err := c.cc.NewStream(ctx, &RouteParser_ServiceDesc.Streams[0], RouteParser_FileTransfer_FullMethodName, opts...)
+func (c *routeParserClient) Upload(ctx context.Context, opts ...grpc.CallOption) (RouteParser_UploadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RouteParser_ServiceDesc.Streams[0], RouteParser_Upload_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &routeParserFileTransferClient{stream}
+	x := &routeParserUploadClient{stream}
 	return x, nil
 }
 
-type RouteParser_FileTransferClient interface {
+type RouteParser_UploadClient interface {
 	Send(*FileUploadRequest) error
 	CloseAndRecv() (*FileUploadResponse, error)
 	grpc.ClientStream
 }
 
-type routeParserFileTransferClient struct {
+type routeParserUploadClient struct {
 	grpc.ClientStream
 }
 
-func (x *routeParserFileTransferClient) Send(m *FileUploadRequest) error {
+func (x *routeParserUploadClient) Send(m *FileUploadRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *routeParserFileTransferClient) CloseAndRecv() (*FileUploadResponse, error) {
+func (x *routeParserUploadClient) CloseAndRecv() (*FileUploadResponse, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -71,11 +73,44 @@ func (x *routeParserFileTransferClient) CloseAndRecv() (*FileUploadResponse, err
 	return m, nil
 }
 
+func (c *routeParserClient) RouteLookupByIP(ctx context.Context, in *RouteLookupByIPRequest, opts ...grpc.CallOption) (RouteParser_RouteLookupByIPClient, error) {
+	stream, err := c.cc.NewStream(ctx, &RouteParser_ServiceDesc.Streams[1], RouteParser_RouteLookupByIP_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &routeParserRouteLookupByIPClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type RouteParser_RouteLookupByIPClient interface {
+	Recv() (*RouteLookupByIPResponse, error)
+	grpc.ClientStream
+}
+
+type routeParserRouteLookupByIPClient struct {
+	grpc.ClientStream
+}
+
+func (x *routeParserRouteLookupByIPClient) Recv() (*RouteLookupByIPResponse, error) {
+	m := new(RouteLookupByIPResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RouteParserServer is the server API for RouteParser service.
 // All implementations must embed UnimplementedRouteParserServer
 // for forward compatibility
 type RouteParserServer interface {
-	FileTransfer(RouteParser_FileTransferServer) error
+	Upload(RouteParser_UploadServer) error
+	RouteLookupByIP(*RouteLookupByIPRequest, RouteParser_RouteLookupByIPServer) error
 	mustEmbedUnimplementedRouteParserServer()
 }
 
@@ -83,8 +118,11 @@ type RouteParserServer interface {
 type UnimplementedRouteParserServer struct {
 }
 
-func (UnimplementedRouteParserServer) FileTransfer(RouteParser_FileTransferServer) error {
-	return status.Errorf(codes.Unimplemented, "method FileTransfer not implemented")
+func (UnimplementedRouteParserServer) Upload(RouteParser_UploadServer) error {
+	return status.Errorf(codes.Unimplemented, "method Upload not implemented")
+}
+func (UnimplementedRouteParserServer) RouteLookupByIP(*RouteLookupByIPRequest, RouteParser_RouteLookupByIPServer) error {
+	return status.Errorf(codes.Unimplemented, "method RouteLookupByIP not implemented")
 }
 func (UnimplementedRouteParserServer) mustEmbedUnimplementedRouteParserServer() {}
 
@@ -99,30 +137,51 @@ func RegisterRouteParserServer(s grpc.ServiceRegistrar, srv RouteParserServer) {
 	s.RegisterService(&RouteParser_ServiceDesc, srv)
 }
 
-func _RouteParser_FileTransfer_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RouteParserServer).FileTransfer(&routeParserFileTransferServer{stream})
+func _RouteParser_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RouteParserServer).Upload(&routeParserUploadServer{stream})
 }
 
-type RouteParser_FileTransferServer interface {
+type RouteParser_UploadServer interface {
 	SendAndClose(*FileUploadResponse) error
 	Recv() (*FileUploadRequest, error)
 	grpc.ServerStream
 }
 
-type routeParserFileTransferServer struct {
+type routeParserUploadServer struct {
 	grpc.ServerStream
 }
 
-func (x *routeParserFileTransferServer) SendAndClose(m *FileUploadResponse) error {
+func (x *routeParserUploadServer) SendAndClose(m *FileUploadResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *routeParserFileTransferServer) Recv() (*FileUploadRequest, error) {
+func (x *routeParserUploadServer) Recv() (*FileUploadRequest, error) {
 	m := new(FileUploadRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func _RouteParser_RouteLookupByIP_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RouteLookupByIPRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RouteParserServer).RouteLookupByIP(m, &routeParserRouteLookupByIPServer{stream})
+}
+
+type RouteParser_RouteLookupByIPServer interface {
+	Send(*RouteLookupByIPResponse) error
+	grpc.ServerStream
+}
+
+type routeParserRouteLookupByIPServer struct {
+	grpc.ServerStream
+}
+
+func (x *routeParserRouteLookupByIPServer) Send(m *RouteLookupByIPResponse) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // RouteParser_ServiceDesc is the grpc.ServiceDesc for RouteParser service.
@@ -134,9 +193,14 @@ var RouteParser_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "FileTransfer",
-			Handler:       _RouteParser_FileTransfer_Handler,
+			StreamName:    "Upload",
+			Handler:       _RouteParser_Upload_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "RouteLookupByIP",
+			Handler:       _RouteParser_RouteLookupByIP_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "route_parser.proto",
