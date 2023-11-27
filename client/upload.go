@@ -8,16 +8,16 @@ import (
 	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
 )
 
-func Upload(ctx context.Context, c pb.RouteParserClient, fName *string, platform *string) (*string, error) {
+func(c *ClientService) Upload(ctx context.Context, fName *string, platform *string) error {
 	iFile, err := os.Open(*fName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer iFile.Close()
 	
-	stream, err := c.FileTransfer(ctx)
+	stream, err := c.client.FileTransfer(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	buf := make([]byte, chunkSize)
@@ -27,18 +27,19 @@ func Upload(ctx context.Context, c pb.RouteParserClient, fName *string, platform
 			break
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 		chunk := buf[:num]
 
 		if err := stream.Send(&pb.FileUploadRequest{Platform: *platform, Chunk: chunk}); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	res, err := stream.CloseAndRecv()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	c.setToken(res.FileName)
 	log.Printf("Successfully send file %s over gRPC, file stored as %s", *fName, res.FileName )
-	return &res.FileName, nil
+	return nil
 }

@@ -7,9 +7,8 @@ import (
 	"os"
 
 	"github.com/bondar-aleksandr/cisco_route_parser/parser"
-	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	// pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
+
 )
 
 var (
@@ -20,8 +19,7 @@ var (
 //var to store all parsed routes
 var allRoutes *parser.RoutingTable
 
-const serverAddr = "localhost:50051"
-const chunkSize = 1400
+
 
 func main() {
 
@@ -34,17 +32,11 @@ func main() {
 	}
 	flag.Parse()
 
-	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("Failed to dial %s, : %v\n", serverAddr, err)
-	}
-	defer conn.Close()
-	c := pb.NewRouteParserClient(conn)
 	ctx := context.Background()
-	Upload(ctx, c, iFileName, platform)
 
-	
-
+	c := NewClientService()
+	c.Upload(ctx, iFileName, platform)
+		
 	// InfoLogger.Println("Parsing routes...")
 	// tableSource := parser.NewTableSource(*platform, iFile)
 	// allRoutes = tableSource.Parse()
