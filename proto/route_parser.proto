@@ -5,12 +5,11 @@ package route_parser;
 option go_package = "github.com/bondar-aleksandr/cisco_route_parser/proto";
 
 message FileUploadRequest {
-    string platform = 2;
     bytes chunk = 3;
 }
 
 message FileUploadResponse {
-    string file_name = 1;
+    string session = 1;
 }
 
 message RouteLookupByIPRequest {
@@ -23,7 +22,15 @@ message RouteLookupByIPResponse {
     string route = 1;
 }
 
+message SessionCloseRequest {
+    string session = 1;
+}
+
+message Empty {
+}
+
 service routeParser {
     rpc Upload(stream FileUploadRequest) returns (FileUploadResponse);
     rpc RouteLookupByIP(RouteLookupByIPRequest) returns (stream RouteLookupByIPResponse);
+    rpc Close(SessionCloseRequest) returns (Empty);
 }

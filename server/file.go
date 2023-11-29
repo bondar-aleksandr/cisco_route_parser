@@ -1,39 +1,42 @@
 package main
 
 import (
-	"bytes"
 	"os"
-	"sync"
-	// "log"
 	"path/filepath"
 	"github.com/google/uuid"
 )
 
-const tempFileDir = "./temp/"
+const tempFileDir = "temp"
 
 type File struct {
 	filePath string
-	lock sync.RWMutex
 	Created bool
 	Name string
 	Platform string
-	buffer     *bytes.Buffer
 	OutputFile *os.File
 }
 
 func NewFile() *File {
 	return &File{
 		Name: uuid.NewString(),
-		buffer: &bytes.Buffer{},
 	}
 }
 
 func (f *File) SetFile(p string) error {
-	f.filePath = filepath.Join(tempFileDir, f.Name)
-	file, err := os.Create(f.filePath)
+	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
+	d := filepath.Join(cwd, tempFileDir)
+	err = os.MkdirAll(d, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filepath.Join(d, f.Name))
+	if err != nil {
+		return err
+	}
+	f.filePath = filepath.Join(d, f.Name)
 	f.Created = true
 	f.OutputFile = file
 	f.Platform = p
@@ -46,19 +49,14 @@ func (f *File) Open() (*os.File, error) {
 }
 
 func (f *File) Write(chunk []byte) error {
-	if f.OutputFile == nil {
-		return nil
-	}
-	f.lock.Lock()
 	_, err := f.OutputFile.Write(chunk)
-	f.lock.Unlock()
 	return err
 }
 
-func (f *File) Close() error {
-	return f.OutputFile.Close()
-}
-
 func (f *File) Delete() error {
+	err := f.OutputFile.Close()
+	if err != nil {
+		return err
+	}
 	return os.Remove(f.filePath)
 }

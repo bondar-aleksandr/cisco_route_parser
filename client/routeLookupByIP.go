@@ -10,10 +10,9 @@ import (
 
 func(c *ClientService) RouteLookupByIP(ctx context.Context, ip string, all bool) (int, chan string , error) {
 	out := make(chan string)
-	errChan := make(chan error, 1)
-	// defer close(out)
 	var amount int
 	var err error
+	var result []string
 
 	stream, err := c.client.RouteLookupByIP(ctx, &pb.RouteLookupByIPRequest{Session: c.session, Ip: ip, AllRoutes: all})
 	if err != nil {
@@ -28,20 +27,22 @@ func(c *ClientService) RouteLookupByIP(ctx context.Context, ip string, all bool)
 	if amounts := md.Get("routes-amount"); len(amounts) >0 {
 		amount, _ = strconv.Atoi(md.Get("routes-amount")[0]) 
 	}
-	go func() {
+	for {
+		res, e := stream.Recv()
+		if e == io.EOF {
+			break
+		} else if e != nil {
+			err = e
+			break
+		}
+		result = append(result, res.Route)
+	}
+	go func(){
 		defer close(out)
-		defer close(errChan)
-		for {
-			res, err := stream.Recv()
-			if err == io.EOF {
-				return
-			} else if err != nil {
-				errChan <- err
-				return
-			}
-			out <- res.Route
+		for _,v := range result {
+			out <- v
 		}
 	}()
-	err = <- errChan
+
 	return amount, out, err
 }

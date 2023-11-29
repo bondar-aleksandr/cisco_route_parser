@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
 	"google.golang.org/grpc"
@@ -38,4 +39,11 @@ func(c *ClientService) Close() error {
 
 func(c *ClientService) setSession(s string) {
 	c.session = s
+}
+
+func(c *ClientService) sessionClose(ctx context.Context) {
+	_, err := c.client.Close(ctx, &pb.SessionCloseRequest{Session: c.session})
+	if err != nil {
+		WarnLogger.Println(err)
+	}
 }

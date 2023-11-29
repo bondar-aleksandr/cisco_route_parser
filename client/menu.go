@@ -27,13 +27,12 @@ mainLoop:
 		switch {
 		case choise == "1":
 			ip := requestUserInput("Enter IP:")
-			n, routes, err := c.RouteLookupByIP(ctx, ip, true)
-			// n, routes, err := allRoutes.FindRoutes(ip, true)
+			n, routesChan, err := c.RouteLookupByIP(ctx, ip, true)
 			if err != nil {
 				ErrorLogger.Printf("Cannot parse IP because of: %q", err)
 			}
 			fmt.Printf("Found %d routes:\n", n)
-			for r := range routes {
+			for r := range routesChan {
 				fmt.Println(r)
 			}
 		// case choise == "2":

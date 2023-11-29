@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	RouteParser_Upload_FullMethodName          = "/route_parser.routeParser/Upload"
 	RouteParser_RouteLookupByIP_FullMethodName = "/route_parser.routeParser/RouteLookupByIP"
+	RouteParser_Close_FullMethodName           = "/route_parser.routeParser/Close"
 )
 
 // RouteParserClient is the client API for RouteParser service.
@@ -29,6 +30,7 @@ const (
 type RouteParserClient interface {
 	Upload(ctx context.Context, opts ...grpc.CallOption) (RouteParser_UploadClient, error)
 	RouteLookupByIP(ctx context.Context, in *RouteLookupByIPRequest, opts ...grpc.CallOption) (RouteParser_RouteLookupByIPClient, error)
+	Close(ctx context.Context, in *SessionCloseRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type routeParserClient struct {
@@ -105,12 +107,22 @@ func (x *routeParserRouteLookupByIPClient) Recv() (*RouteLookupByIPResponse, err
 	return m, nil
 }
 
+func (c *routeParserClient) Close(ctx context.Context, in *SessionCloseRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, RouteParser_Close_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RouteParserServer is the server API for RouteParser service.
 // All implementations must embed UnimplementedRouteParserServer
 // for forward compatibility
 type RouteParserServer interface {
 	Upload(RouteParser_UploadServer) error
 	RouteLookupByIP(*RouteLookupByIPRequest, RouteParser_RouteLookupByIPServer) error
+	Close(context.Context, *SessionCloseRequest) (*Empty, error)
 	mustEmbedUnimplementedRouteParserServer()
 }
 
@@ -123,6 +135,9 @@ func (UnimplementedRouteParserServer) Upload(RouteParser_UploadServer) error {
 }
 func (UnimplementedRouteParserServer) RouteLookupByIP(*RouteLookupByIPRequest, RouteParser_RouteLookupByIPServer) error {
 	return status.Errorf(codes.Unimplemented, "method RouteLookupByIP not implemented")
+}
+func (UnimplementedRouteParserServer) Close(context.Context, *SessionCloseRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Close not implemented")
 }
 func (UnimplementedRouteParserServer) mustEmbedUnimplementedRouteParserServer() {}
 
@@ -184,13 +199,36 @@ func (x *routeParserRouteLookupByIPServer) Send(m *RouteLookupByIPResponse) erro
 	return x.ServerStream.SendMsg(m)
 }
 
+func _RouteParser_Close_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SessionCloseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RouteParserServer).Close(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RouteParser_Close_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RouteParserServer).Close(ctx, req.(*SessionCloseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RouteParser_ServiceDesc is the grpc.ServiceDesc for RouteParser service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var RouteParser_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "route_parser.routeParser",
 	HandlerType: (*RouteParserServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Close",
+			Handler:    _RouteParser_Close_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Upload",

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	pb "github.com/bondar-aleksandr/cisco_route_parser/proto"
+	"google.golang.org/grpc/metadata"
 )
 
 func(c *ClientService) Upload(ctx context.Context, fName *string, platform *string) error {
@@ -14,6 +15,8 @@ func(c *ClientService) Upload(ctx context.Context, fName *string, platform *stri
 		return err
 	}
 	defer iFile.Close()
+
+	ctx = metadata.AppendToOutgoingContext(ctx, "platform", *platform)
 	
 	stream, err := c.client.Upload(ctx)
 	if err != nil {
@@ -31,7 +34,7 @@ func(c *ClientService) Upload(ctx context.Context, fName *string, platform *stri
 		}
 		chunk := buf[:num]
 
-		if err := stream.Send(&pb.FileUploadRequest{Platform: *platform, Chunk: chunk}); err != nil {
+		if err := stream.Send(&pb.FileUploadRequest{Chunk: chunk}); err != nil {
 			return err
 		}
 	}
@@ -39,7 +42,7 @@ func(c *ClientService) Upload(ctx context.Context, fName *string, platform *stri
 	if err != nil {
 		return err
 	}
-	c.setSession(res.FileName)
-	log.Printf("Successfully send file %s over gRPC, file stored as %s", *fName, res.FileName )
+	c.setSession(res.Session)
+	log.Printf("Successfully send file %s over gRPC, file stored as %s", *fName, res.Session )
 	return nil
 }
