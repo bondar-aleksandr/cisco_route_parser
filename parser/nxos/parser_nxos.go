@@ -1,4 +1,4 @@
-package parser
+package nxos
 
 import (
 	"bufio"
@@ -6,7 +6,17 @@ import (
 	"regexp"
 	"strings"
 	"slices"
+	"github.com/bondar-aleksandr/cisco_route_parser/parser/entities"
+	"io"
 )
+
+type NxosParser struct{
+	Source io.Reader
+}
+
+func NewNxosParser(s io.Reader) *NxosParser {
+	return &NxosParser{Source: s}
+}
 
 const (
 	table_name_regexp_NXOS = `IP Route Table for VRF "(\S+)"`
@@ -20,12 +30,12 @@ var viaStringComp_NXOS = regexp.MustCompile(via_string_NXOS)
 
 var direct_routes_NXOS = []string{"direct", "local", "hsrp", "glbp", "vrrp"}
 
-func parseRouteNXOS(t *tableSource) *RoutingTable {
+func(n *NxosParser) Parse() *entities.RoutingTable {
 
-	var RT = newRoutingTable()
-	var route = newRoute(RT)
+	var RT = entities.NewRoutingTable()
+	var route = entities.NewRoute(RT)
 
-	scanner := bufio.NewScanner(t.Source)
+	scanner := bufio.NewScanner(n.Source)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -40,11 +50,11 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 			matches := routeStringComp_NXOS.FindStringSubmatch(line)
 			pref, err := netip.ParsePrefix(matches[0])
 			if err != nil {
-				warnLogger.Printf("Cannot parse prefix from string %s, skipping...", pref)
+				entities.WarnLogger.Printf("Cannot parse prefix from string %s, skipping...", pref)
 				continue
 			}
 			route.Network = pref
-			RT.addRoute(route)
+			RT.AddRoute(route)
 
 		// case for line where next-hop specified
 		// *via 192.168.199.33, Vlan889, [110/41], 1w3d, ospf-10, intra
@@ -52,20 +62,20 @@ func parseRouteNXOS(t *tableSource) *RoutingTable {
 		} else if strings.Contains(line, "*via ") {
 			matches := viaStringComp_NXOS.FindStringSubmatch(line)
 			nhStr := matches[1]
-			nh := newNextHop(nhStr)
+			nh := entities.NewNextHop(nhStr)
 			nhIntf := matches[3]
 			rtype := matches[4]
 
 			// for cases where IP after '*via' needs to be replaced with interface (connected routes),
 			// or where there is no IP after '*via' (summary, discard routes, routes via p2p interfaces, etc.)
 			if slices.Contains(direct_routes_NXOS, rtype) || nhStr == "" {
-				nh.setIntf(nhIntf)
+				nh.SetIntf(nhIntf)
 			}
-			RT.getLast().addNextHop(nh)
-			RT.getLast().Type = rtype
+			RT.GetLast().AddNextHop(nh)
+			RT.GetLast().Type = rtype
 
 			// create a new route for next iteration, since route is pointer
-			route = newRoute(RT)
+			route = entities.NewRoute(RT)
 			
 		//for debug purposes
 		// } else {

@@ -1,4 +1,4 @@
-package parser
+package ios
 
 import (
 	"fmt"
@@ -6,7 +6,17 @@ import (
 	"net/netip"
 	"regexp"
 	"bufio"
+	"github.com/bondar-aleksandr/cisco_route_parser/parser/entities"
+	"io"
 )
+
+type IosParser struct{
+	Source io.Reader
+}
+
+func NewIosParser(s io.Reader) *IosParser {
+	return &IosParser{Source: s}
+}
 
 const (
 	conn_route_regexp = `^(\w\*? ?\w?\w?) +(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/?(\d{1,2})? is directly connected,( \w+,)? (\S+)$`
@@ -24,12 +34,12 @@ var summaryRouteComp = regexp.MustCompile(summary_route_regexp)
 var tableNameComp = regexp.MustCompile(table_name_regexp)
 
 
-func parseRouteIOS(t *tableSource) *RoutingTable {
+func(i *IosParser) Parse() *entities.RoutingTable {
 
-	var RT = newRoutingTable()
+	var RT = entities.NewRoutingTable()
 	var commonMask string
 
-	scanner := bufio.NewScanner(t.Source)
+	scanner := bufio.NewScanner(i.Source)
 	for scanner.Scan() {
 		line := scanner.Text()
 	
@@ -54,7 +64,7 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 			if route == nil {
 				continue
 			}
-			RT.addRoute(route)
+			RT.AddRoute(route)
 
 		// case for summary discard route, for example:
 		// O        33.33.33.0/24 is a summary, 00:00:14, Null0
@@ -64,7 +74,7 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 			if route == nil {
 				continue
 			}
-			RT.addRoute(route)
+			RT.AddRoute(route)
 		
 		// case for regular route, for example:
 		// O        172.17.10.0/24 [110/41] via 192.168.199.35, 1w5d, Vlan889
@@ -74,14 +84,14 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 			if route == nil {
 				continue
 			}
-			RT.addRoute(route)
+			RT.AddRoute(route)
 			
 		// case for linebreak with via
 		// [110/41] via 192.168.199.34, 1w5d, Vlan889
 		} else if strings.HasPrefix(strings.TrimSpace(line), "[") {
 			matches := lineBreakComp.FindStringSubmatch(line)
-			nh := newNextHop(matches[1])
-			RT.getLast().addNextHop(nh)
+			nh := entities.NewNextHop(matches[1])
+			RT.GetLast().AddNextHop(nh)
 
 		// just not for log.Warn to be triggered
 		// 33.0.0.0/8 is variably subnetted, 3 subnets, 2 masks
@@ -98,8 +108,8 @@ func parseRouteIOS(t *tableSource) *RoutingTable {
 
 // routeCreate func creates *Route object from slice of strings (matches) and corresponding
 // indexes (regGroup) for those strings in the slice
-func routeCreate(matches []string, capGroup []int, commonMask string, rt *RoutingTable) *route {
-	var route = newRoute(rt)
+func routeCreate(matches []string, capGroup []int, commonMask string, rt *entities.RoutingTable) *entities.Route {
+	var route = entities.NewRoute(rt)
 
 	rtypeIndex := capGroup[0]
 	prefIndex := capGroup[1]
@@ -114,12 +124,12 @@ func routeCreate(matches []string, capGroup []int, commonMask string, rt *Routin
 	}
 	prefix, err := netip.ParsePrefix(fmt.Sprintf("%s/%s", pref, mask))
 	if err != nil {
-		warnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
+		entities.WarnLogger.Printf("Cannot parse prefix from string %s/%s, skipping...", pref, mask)
 		return nil
 	}
 	route.Type = rtype
 	route.Network = prefix
-	nh := newNextHop(matches[nhIndex])
-	route.addNextHop(nh)
+	nh := entities.NewNextHop(matches[nhIndex])
+	route.AddNextHop(nh)
 	return route
 }

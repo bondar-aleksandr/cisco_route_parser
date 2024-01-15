@@ -5,7 +5,15 @@ import (
 	"strings"
 	"os"
 	"bufio"
+	"github.com/bondar-aleksandr/cisco_route_parser/parser/entities"
 )
+
+type RT interface {
+	FindRoutes(string, bool) (int, <-chan *entities.Route, error)
+	FindRoutesByNH(string) (int, <-chan *entities.Route)
+	FindUniqNexthops(bool) (int, <-chan *entities.NextHop)
+	String() string
+}
 
 const MENU_TEXT = `
 ======================================
@@ -18,7 +26,7 @@ Possible values for selection:
 ======================================`
 
 // main menu func
-func Menu() {
+func Menu(rt RT) {
 mainLoop:
 	for {
 		fmt.Println(MENU_TEXT)
@@ -26,9 +34,9 @@ mainLoop:
 		switch {
 		case choise == "1":
 			ip := requestUserInput("Enter IP:")
-			n, routes, err := allRoutes.FindRoutes(ip, true)
+			n, routes, err := rt.FindRoutes(ip, true)
 			if err != nil {
-				ErrorLogger.Printf("Cannot parse IP because of: %q", err)
+				logger.Errorf("Cannot parse IP because of: %q", err)
 			}
 			fmt.Printf("Found %d routes:\n", n)
 			for r := range routes {
@@ -36,19 +44,19 @@ mainLoop:
 			}
 		case choise == "2":
 			nh := requestUserInput("Enter Next-hop value, either IP or interface format accepted:")
-			n, routes := allRoutes.FindRoutesByNH(nh)
+			n, routes := rt.FindRoutesByNH(nh)
 			fmt.Printf("Found %d routes:\n", n)
 			for r := range routes {
 				fmt.Println(r)
 			}
 		case choise == "3":
-			n, nhs := allRoutes.FindUniqNexthops(false)
+			n, nhs := rt.FindUniqNexthops(false)
 			fmt.Printf("Found %d unique nexthops:\n", n)
 			for nh := range nhs {
 				fmt.Println(nh)
 			}
 		case choise == "8":
-			fmt.Println(allRoutes)
+			fmt.Println(rt)
 		case choise == "9":
 			break mainLoop
 		}
