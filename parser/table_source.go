@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 	"github.com/bondar-aleksandr/cisco_route_parser/parser/entities"
-	// "github.com/bondar-aleksandr/cisco_route_parser/parser/ios"
+	"github.com/bondar-aleksandr/cisco_route_parser/parser/ios"
 	"github.com/bondar-aleksandr/cisco_route_parser/parser/nxos"
 )
 
@@ -28,9 +28,9 @@ func NewTableSource(p string, s io.Reader) (*TableSource, error) {
 		parser Parser
 	)
 	switch {
-	// case p == "ios":
-	// 	platform = p
-	// 	parser = ios.NewIosParser(s)
+	case p == "ios":
+		platform = p
+		parser = ios.NewIosParser(s)
 	case p == "nxos":
 		platform = p
 		parser = nxos.NewNxosParser(s)

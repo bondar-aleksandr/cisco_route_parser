@@ -22,3 +22,12 @@
 {"level":"info","timestamp":"2024-01-15T18:21:55.765+0200","caller":"cisco_route_parser/main.go:28","msg":"Starting...","go version":"go1.21.3","pid":17380}
 {"level":"info","timestamp":"2024-01-15T18:21:55.778+0200","caller":"cisco_route_parser/main.go:43","msg":"Parsing routes...","go version":"go1.21.3","pid":17380}
 {"level":"info","timestamp":"2024-01-15T18:21:55.779+0200","caller":"cisco_route_parser/main.go:50","msg":"Parsing routes done, found 135 routes, 13 unique nexthops","go version":"go1.21.3","pid":17380}
+{"level":"info","timestamp":"2024-01-18T18:32:06.976+0200","caller":"cisco_route_parser/main.go:23","msg":"Starting...","go version":"go1.21.3","pid":2400}
+{"level":"info","timestamp":"2024-01-18T18:32:07.002+0200","caller":"cisco_route_parser/main.go:38","msg":"Parsing routes...","go version":"go1.21.3","pid":2400}
+{"level":"info","timestamp":"2024-01-18T18:32:07.005+0200","caller":"cisco_route_parser/main.go:45","msg":"Parsing routes done, found 135 routes, 13 unique nexthops","go version":"go1.21.3","pid":2400}
+{"level":"info","timestamp":"2024-01-18T18:32:39.450+0200","caller":"cisco_route_parser/main.go:23","msg":"Starting...","go version":"go1.21.3","pid":12160}
+{"level":"info","timestamp":"2024-01-18T18:32:39.474+0200","caller":"cisco_route_parser/main.go:38","msg":"Parsing routes...","go version":"go1.21.3","pid":12160}
+{"level":"error","timestamp":"2024-01-18T18:32:39.475+0200","caller":"cisco_route_parser/main.go:41","msg":"got error: %!w(*errors.errorString=&{wrong platform value specified})","go version":"go1.21.3","pid":12160,"stacktrace":"main.main\n\tD:/dev/go/cisco_route_parser/main.go:41\nruntime.main\n\tC:/Program Files/Go/src/runtime/proc.go:267"}
+{"level":"info","timestamp":"2024-01-18T18:32:51.162+0200","caller":"cisco_route_parser/main.go:23","msg":"Starting...","go version":"go1.21.3","pid":19360}
+{"level":"info","timestamp":"2024-01-18T18:32:51.183+0200","caller":"cisco_route_parser/main.go:38","msg":"Parsing routes...","go version":"go1.21.3","pid":19360}
+{"level":"info","timestamp":"2024-01-18T18:32:51.185+0200","caller":"cisco_route_parser/main.go:45","msg":"Parsing routes done, found 9 routes, 5 unique nexthops","go version":"go1.21.3","pid":19360}
